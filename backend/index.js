@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const authRoute = require('./routes/auth');
 const userRoute = require('./routes/user');
 const chatRoute = require('./routes/chat');
+const taskRoute = require('./routes/task');
 const User = require('./models/User');
 
 dotenv.config();
@@ -212,6 +213,7 @@ app.use(morgan('dev'));
 app.use('/v1/auth', authRoute);
 app.use('/v1/user', userRoute);
 app.use('/v1/chat', chatRoute);
+app.use('/v1/tasks', taskRoute);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -6,7 +6,8 @@ import {
   TeamOutlined,
   SettingOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  BookOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,7 +57,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       key: '/settings',
       icon: <SettingOutlined />,
       label: 'Settings',
-    }
+    },
+    {
+      key: '/tasks',
+      icon: <BookOutlined />,
+      label: 'Tasks',
+    },
   ];
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
