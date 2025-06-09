@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Card, Typography, Button, Space, Input, message, Tag, Avatar } from "antd";
+import { Card, Typography, Button, Space, Input, message, Tag, Avatar, Tooltip } from "antd";
 import TaskService from "../../services/taskService";
 import { useAuth } from "../../contexts/AuthContext";
-import { ClockCircleOutlined, CheckCircleOutlined, LoadingOutlined, UserOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, CheckCircleOutlined, LoadingOutlined, UserOutlined, WarningOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
 
@@ -18,7 +18,7 @@ export interface Task {
   assignedBy: string;
   deadline: Date;
   createdAt: Date;
-  status: "todo" | "in_progress" | "done";
+  status: "todo" | "in_progress" | "done" | "failed" | "overdue";
   receivedAt?: Date;
   proofUrl?: string;
 }
@@ -44,6 +44,10 @@ const getStatusColor = (status: string) => {
       return '#1890ff';
     case 'done':
       return '#52c41a';
+    case 'failed':
+      return '#262626';
+    case 'overdue':
+      return '#faad14';
     default:
       return '#d9d9d9';
   }
@@ -57,6 +61,10 @@ const getStatusText = (status: string) => {
       return 'Đang làm';
     case 'done':
       return 'Hoàn thành';
+    case 'failed':
+      return 'Không hoàn thành';
+    case 'overdue':
+      return 'Quá hạn';
     default:
       return status;
   }
@@ -72,9 +80,38 @@ const TaskDisplayPage: React.FC<TaskDisplayPageProps> = ({ task, token, onTaskUp
 
   const isAdmin = user?.role === 'admin';
   const isAssignedUser = user?._id === task.assignedTo._id;
+  const isOverdue = new Date() > new Date(task.deadline);
+  const wasCompletedLate = status === 'done' && receivedAt && new Date(receivedAt) > new Date(task.deadline);
+
+  useEffect(() => {
+    // Check for overdue tasks
+    if (isOverdue) {
+      const handleOverdueTask = async () => {
+        if (status === 'todo') {
+          try {
+            await TaskService.updateTask(task._id, { status: 'failed' }, authToken);
+            setStatus('failed');
+            onTaskUpdated();
+          } catch (error) {
+            console.error('Error updating overdue task:', error);
+          }
+        } else if (status === 'in_progress') {
+          try {
+            await TaskService.updateTask(task._id, { status: 'overdue' }, authToken);
+            setStatus('overdue');
+            onTaskUpdated();
+          } catch (error) {
+            console.error('Error updating overdue task:', error);
+          }
+        }
+      };
+
+      handleOverdueTask();
+    }
+  }, [task, status, isOverdue, authToken]);
 
   const handleReceive = async () => {
-    if (status === "todo") {
+    if (status === "todo" && !isOverdue) {
       const now = new Date().toISOString();
       try {
         await TaskService.updateTask(task._id, { status: "in_progress", receivedAt: new Date(now) }, authToken);
@@ -84,11 +121,13 @@ const TaskDisplayPage: React.FC<TaskDisplayPageProps> = ({ task, token, onTaskUp
       } catch (error) {
         message.error("Không thể cập nhật trạng thái task.");
       }
+    } else if (isOverdue) {
+      message.error("Không thể nhận task đã quá hạn.");
     }
   };
 
   const handleComplete = async () => {
-    if (status === "in_progress" && driveLink) {
+    if ((status === "in_progress" || status === "overdue") && driveLink) {
       try {
         await TaskService.updateTask(task._id, { 
           status: "done",
@@ -194,9 +233,21 @@ const TaskDisplayPage: React.FC<TaskDisplayPageProps> = ({ task, token, onTaskUp
   return (
     <Card style={cardStyle} bodyStyle={{ padding: '16px' }}>
       <div style={{ marginBottom: '16px' }}>
-        <Tag color={getStatusColor(status)} style={{ float: 'right', marginTop: '4px' }}>
-          {getStatusText(status)}
-        </Tag>
+        <div style={{ float: 'right', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Tag color={getStatusColor(status)}>
+            {getStatusText(status)}
+          </Tag>
+          {wasCompletedLate && (
+            <Tooltip title="Hoàn thành sau thời hạn">
+              <ExclamationCircleOutlined style={{ color: '#faad14', fontSize: '16px' }} />
+            </Tooltip>
+          )}
+        </div>
+        {isOverdue && status !== 'done' && status !== 'failed' && (
+          <Tag icon={<WarningOutlined />} color="warning" style={{ float: 'right', marginTop: '4px', marginRight: '8px' }}>
+            Quá hạn
+          </Tag>
+        )}
         <Title level={4} style={titleStyle}>{currentTask.title}</Title>
         <div style={assignedUserStyle}>
           <Avatar 
@@ -212,17 +263,17 @@ const TaskDisplayPage: React.FC<TaskDisplayPageProps> = ({ task, token, onTaskUp
       <Space direction="vertical" style={{ width: '100%' }}>
         <div style={dateStyle}>
           <ClockCircleOutlined />
-          <span>Deadline: {currentTask.deadline.toLocaleDateString('vi-VN')}</span>
+          <span>Deadline: {new Date(currentTask.deadline).toLocaleDateString('vi-VN')}</span>
         </div>
         
         {receivedAt && (
           <div style={dateStyle}>
             <CheckCircleOutlined />
-            <span>Đã nhận: {receivedAt.toLocaleDateString('vi-VN')}</span>
+            <span>Đã nhận: {new Date(receivedAt).toLocaleDateString('vi-VN')}</span>
           </div>
         )}
 
-        {!isAdmin && isAssignedUser && status === "todo" && (
+        {!isAdmin && isAssignedUser && status === "todo" && !isOverdue && (
           <Button 
             type="primary" 
             onClick={handleReceive} 
@@ -232,7 +283,7 @@ const TaskDisplayPage: React.FC<TaskDisplayPageProps> = ({ task, token, onTaskUp
           </Button>
         )}
 
-        {!isAdmin && isAssignedUser && status === "in_progress" && (
+        {!isAdmin && isAssignedUser && (status === "in_progress" || status === "overdue") && (
           <Space direction="vertical" style={{ width: '100%' }}>
             <Input
               placeholder="Nhập link Google Drive"
@@ -261,7 +312,7 @@ const TaskDisplayPage: React.FC<TaskDisplayPageProps> = ({ task, token, onTaskUp
           </Space>
         )}
 
-        {status === "done" && driveLink && (
+        {(status === "done" || status === "failed") && driveLink && (
           <Button 
             type="link" 
             href={driveLink} 
