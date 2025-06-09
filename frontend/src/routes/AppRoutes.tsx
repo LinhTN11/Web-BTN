@@ -8,6 +8,7 @@ import Dashboard from '../pages/Dashboard/Dashboard';
 import Users from '../pages/Users/Users';
 import Settings from '../pages/Settings/Settings';
 import MessengerChatPage from '../Components/Chat/MessengerChatPage';
+import Tasks from '../pages/Tasks/index';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -129,6 +130,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <MainLayout>
               <Settings />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+        <Route 
+        path="/tasks" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <Tasks />
             </MainLayout>
           </ProtectedRoute>
         } 
