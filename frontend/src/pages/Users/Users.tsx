@@ -32,9 +32,8 @@ const Users: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [editingEmailUserId, setEditingEmailUserId] = useState<string | null>(null);
   const [tempEmail, setTempEmail] = useState('');
-  const { user: currentUser, getUsers, refreshUsers } = useAuth();
+  const { user: currentUser, getUsers, refreshUsers, updateUserInList, removeUserFromList } = useAuth();
   const users = getUsers();
-
   useEffect(() => {
     const initUsers = async () => {
       try {
@@ -48,13 +47,13 @@ const Users: React.FC = () => {
     };
 
     initUsers();
-  }, [refreshUsers]);
-
+  }, []); // Remove refreshUsers from dependencies
   const handleDeleteUser = async (userId: string) => {
     try {
       await userAPI.deleteUser(userId);
+      // Remove user from local state immediately
+      removeUserFromList(userId);
       message.success('Đã xóa người dùng thành công');
-      await refreshUsers(); // Refresh the cached data after deletion
     } catch (error) {
       message.error('Không thể xóa người dùng');
     }
@@ -65,23 +64,33 @@ const Users: React.FC = () => {
       setEditingEmailUserId(user._id);
       setTempEmail(user.email);
     }
-  };
+  };  const handleEmailSave = async (userId: string) => {
+    if (!tempEmail.trim()) {
+      message.error('Email không được để trống');
+      return false; // Return false to indicate validation failed
+    }
 
-  const handleEmailSave = async (userId: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(tempEmail)) {
       message.error('Email không hợp lệ');
-      return;
-    }
-
-    try {
-      await userAPI.updateUser(userId, { email: tempEmail });
-      await refreshUsers(); // Refresh the cached data after update
+      return false; // Return false to indicate validation failed
+    }    try {
+      console.log('Updating user email:', { userId, email: tempEmail });
+      const updatedUser = await userAPI.updateUser(userId, { email: tempEmail });
+      console.log('User updated successfully:', updatedUser);
+      
+      // Update the user in the local state immediately
+      updateUserInList(userId, { email: tempEmail });
+      
       message.success('Cập nhật email thành công');
       setEditingEmailUserId(null);
       setTempEmail('');
+      return true; // Return true to indicate success
     } catch (error: any) {
-      message.error(error.response?.data?.message || 'Không thể cập nhật email');
+      console.error('Error updating email:', error);
+      const errorMessage = error.response?.data?.message || 'Không thể cập nhật email';
+      message.error(errorMessage);
+      return false; // Return false to indicate error occurred
     }
   };
 
@@ -89,11 +98,32 @@ const Users: React.FC = () => {
     setEditingEmailUserId(null);
     setTempEmail('');
   };
-
-  const handleEmailKeyPress = (e: React.KeyboardEvent, userId: string) => {
+  const handleEmailKeyPress = async (e: React.KeyboardEvent, userId: string) => {
     if (e.key === 'Enter') {
-      handleEmailSave(userId);
+      e.preventDefault();
+      await handleEmailSave(userId);
     } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleEmailCancel();
+    }
+  };
+
+  const handleEmailBlur = async (userId: string) => {
+    // Only save on blur if the user has made changes and the email is different from original
+    const originalUser = users.find(u => u._id === userId);
+    if (originalUser && tempEmail !== originalUser.email && tempEmail.trim()) {
+      const success = await handleEmailSave(userId);
+      if (!success) {
+        // If save failed, keep the input focused
+        setTimeout(() => {
+          const input = document.querySelector(`input[data-user-id="${userId}"]`) as HTMLInputElement;
+          if (input) {
+            input.focus();
+          }
+        }, 100);
+      }
+    } else {
+      // If no changes or empty, just cancel
       handleEmailCancel();
     }
   };
@@ -128,15 +158,15 @@ const Users: React.FC = () => {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      sorter: (a, b) => a.email.localeCompare(b.email),
-      render: (email: string, record: User) => {
+      sorter: (a, b) => a.email.localeCompare(b.email),      render: (email: string, record: User) => {
         if (editingEmailUserId === record._id && currentUser?.role === 'admin') {
           return (
             <Input
               value={tempEmail}
               onChange={(e) => setTempEmail(e.target.value)}
-              onBlur={() => handleEmailSave(record._id)}
+              onBlur={() => handleEmailBlur(record._id)}
               onKeyDown={(e) => handleEmailKeyPress(e, record._id)}
+              data-user-id={record._id}
               style={{ 
                 width: '100%', 
                 border: '1px solid #1890ff',

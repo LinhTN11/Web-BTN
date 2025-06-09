@@ -12,6 +12,7 @@ const userRoute = require('./routes/user');
 const chatRoute = require('./routes/chat');
 const taskRoute = require('./routes/task');
 const User = require('./models/User');
+const Message = require('./models/Message');
 
 dotenv.config();
 const app = express();
@@ -87,15 +88,33 @@ global.io = io;
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) {
+    console.log('Socket connection rejected: No token provided');
     return next(new Error("Authentication error"));
   }
 
   try {
     const actualToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+    console.log('Attempting to verify token for socket connection...');
     const decoded = jwt.verify(actualToken, process.env.JWT_ACCESS_KEY);
+    console.log('Token decoded successfully:', { id: decoded.id, role: decoded.role });
+    
+    // Ensure we have a valid user ID
+    if (!decoded.id) {
+      console.log('Socket connection rejected: Invalid token - no user ID in decoded token:', decoded);
+      return next(new Error("Authentication error"));
+    }
+    
     socket.userId = decoded.id;
+    console.log('Socket authenticated for user:', socket.userId);
     next();
   } catch (err) {
+    console.log('Socket connection rejected: Token verification failed:', err.message);
+    console.log('Token details:', { 
+      tokenExists: !!token, 
+      tokenLength: token?.length, 
+      startsWithBearer: token?.startsWith('Bearer '),
+      actualTokenLength: token?.startsWith('Bearer ') ? token.slice(7).length : token?.length
+    });
     return next(new Error("Authentication error"));
   }
 });
@@ -103,6 +122,13 @@ io.use((socket, next) => {
 // Socket.IO connection handling
 io.on('connection', async (socket) => {
   console.log('User connected:', socket.userId);
+
+  // Validate user ID exists
+  if (!socket.userId) {
+    console.error('Socket connected but no userId found');
+    socket.disconnect();
+    return;
+  }
 
   try {
     // Update user's online status and last active time
@@ -118,34 +144,50 @@ io.on('connection', async (socket) => {
   }
 
   // Handle joining user's room
-  socket.join(socket.userId);
-
-  // Handle messages
+  socket.join(socket.userId);  // Handle messages
   socket.on('sendMessage', async (data) => {
     try {
-      const { receiverId, content } = data;
+      const { receiverId, content, messageType = 'text' } = data;
+      
+      // Validate required fields
+      if (!socket.userId) {
+        console.error('SendMessage error: No userId in socket');
+        socket.emit('messageError', { error: 'Authentication error' });
+        return;
+      }
+      
+      if (!receiverId || !content) {
+        console.error('SendMessage error: Missing receiverId or content');
+        socket.emit('messageError', { error: 'Missing required fields' });
+        return;
+      }
       
       // Update sender's last active time
       await User.findByIdAndUpdate(socket.userId, {
         lastActive: new Date()
       });
       
-      // Emit to receiver
-      io.to(receiverId).emit('newMessage', {
-        _id: new mongoose.Types.ObjectId(),
+      // Save message to database
+      const newMessage = new Message({
         sender: socket.userId,
         receiver: receiverId,
         content,
-        timestamp: new Date(),
+        messageType,
         isRead: false
       });
 
+      const savedMessage = await newMessage.save();
+      
+      // Populate sender and receiver info
+      const populatedMessage = await Message.findById(savedMessage._id)
+        .populate('sender', 'username avatar')
+        .populate('receiver', 'username avatar');
+      
+      // Emit to receiver
+      io.to(receiverId).emit('newMessage', populatedMessage);
+
       // Emit back to sender for confirmation
-      socket.emit('messageConfirmed', {
-        receiverId,
-        content,
-        timestamp: new Date()
-      });
+      socket.emit('messageConfirmed', populatedMessage);
     } catch (error) {
       console.error('Error handling message:', error);
       socket.emit('messageError', { error: 'Failed to send message' });
@@ -206,7 +248,8 @@ const corsOptions = {
 // Middleware setup
 app.use(cors(corsOptions));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increase payload limit for avatar uploads
+app.use(express.urlencoded({ limit: '50mb', extended: true })); // Also handle URL encoded data
 app.use(morgan('dev'));
 
 // API Routes with versioning

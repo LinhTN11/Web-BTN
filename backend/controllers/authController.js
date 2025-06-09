@@ -24,33 +24,56 @@ const authController = {
     } catch (err) {
       res.status(500).json(err);
     }
-  },
-
-  generateAccessToken: (user) => {
+  },  generateAccessToken: (user) => {
     try {
+      console.log('Generating access token for user:', { 
+        id: user._id, 
+        userId: user.id,
+        role: user.role, 
+        userObject: user 
+      });
+      
+      const userId = user._id || user.id;
+      if (!userId) {
+        console.error('No user ID found in user object:', user);
+        throw new Error('User ID is required for token generation');
+      }
+      
       return jwt.sign(
         {
-          id: user._id,
+          id: userId,
           role: user.role,
+          isAdmin: user.role === 'admin', // Add isAdmin for backward compatibility
         },
         process.env.JWT_ACCESS_KEY || 'fallback_access_key',
-        { expiresIn: "30s" }
+        { expiresIn: "15m" } // Changed from 30s to 15 minutes
       );
     } catch (error) {
       console.error('Error generating access token:', error);
       throw new Error('Không thể tạo token đăng nhập');
     }
-  },
-
-  generateRefreshToken: (user) => {
+  },  generateRefreshToken: (user) => {
     try {
+      console.log('Generating refresh token for user:', { 
+        id: user._id, 
+        userId: user.id,
+        role: user.role 
+      });
+      
+      const userId = user._id || user.id;
+      if (!userId) {
+        console.error('No user ID found in user object:', user);
+        throw new Error('User ID is required for refresh token generation');
+      }
+      
       return jwt.sign(
         {
-          id: user._id,
+          id: userId,
           role: user.role,
+          isAdmin: user.role === 'admin', // Add isAdmin for backward compatibility
         },
         process.env.JWT_REFRESH_KEY || 'fallback_refresh_key',
-        { expiresIn: "365d" }
+        { expiresIn: "7d" } // Reduced from 365d to 7 days for better security
       );
     } catch (error) {
       console.error('Error generating refresh token:', error);
@@ -105,35 +128,63 @@ const authController = {
       res.status(500).json({ message: "Lỗi đăng nhập, vui lòng thử lại" });
     }
   },
-
   requestRefreshToken: async (req, res) => {
-    //Take refresh token from user
-    const refreshToken = req.cookies.refreshToken;
-    //Send error if token is not valid
-    if (!refreshToken) return res.status(401).json("You're not authenticated");
-    if (!refreshTokens.includes(refreshToken)) {
-      return res.status(403).json("Refresh token is not valid");
-    }
-    jwt.verify(refreshToken, process.env.JWT_REFRESH_KEY, (err, user) => {
-      if (err) {
-        console.log(err);
+    try {
+      //Take refresh token from user
+      const refreshToken = req.cookies.refreshToken;
+      
+      //Send error if token is not valid
+      if (!refreshToken) {
+        return res.status(401).json({ 
+          message: "Không tìm thấy refresh token",
+          code: "NO_REFRESH_TOKEN"
+        });
       }
-      refreshTokens = refreshTokens.filter((token) => token !== refreshToken);
-      //create new access token, refresh token and send to user
-      const newAccessToken = authController.generateAccessToken(user);
-      const newRefreshToken = authController.generateRefreshToken(user);
-      refreshTokens.push(newRefreshToken);
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure:false,
-        path: "/",
-        sameSite: "strict",
+      
+      if (!refreshTokens.includes(refreshToken)) {
+        return res.status(403).json({ 
+          message: "Refresh token không hợp lệ",
+          code: "INVALID_REFRESH_TOKEN"
+        });
+      }
+      
+      jwt.verify(refreshToken, process.env.JWT_REFRESH_KEY, (err, user) => {
+        if (err) {
+          console.error('Error verifying refresh token:', err);
+          return res.status(403).json({ 
+            message: "Refresh token đã hết hạn",
+            code: "REFRESH_TOKEN_EXPIRED"
+          });
+        }
+        
+        // Remove old refresh token
+        refreshTokens = refreshTokens.filter((token) => token !== refreshToken);
+        
+        //create new access token, refresh token and send to user
+        const newAccessToken = authController.generateAccessToken(user);
+        const newRefreshToken = authController.generateRefreshToken(user);
+        refreshTokens.push(newRefreshToken);
+        
+        // Set NEW refresh token cookie
+        res.cookie("refreshToken", newRefreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          path: "/",
+          sameSite: "strict",
+        });
+        
+        res.status(200).json({
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        });
       });
-      res.status(200).json({
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
+    } catch (error) {
+      console.error('Error in requestRefreshToken:', error);
+      res.status(500).json({ 
+        message: "Lỗi làm mới token",
+        code: "REFRESH_ERROR"
       });
-    });
+    }
   },
 
   //LOG OUT
@@ -143,13 +194,26 @@ const authController = {
     res.clearCookie("refreshToken");
     res.status(200).json("Logged out successfully!");
   },
-
   userLogout: async (req, res) => {
     try {
-      refreshTokens = refreshTokens.filter((token) => token !== req.body.token);
+      // Get refresh token from cookie
+      const refreshToken = req.cookies.refreshToken;
+      
+      // Remove refresh token from memory if it exists
+      if (refreshToken) {
+        refreshTokens = refreshTokens.filter((token) => token !== refreshToken);
+      }
+      
+      // Also remove any token sent in body (for backward compatibility)
+      if (req.body.token) {
+        refreshTokens = refreshTokens.filter((token) => token !== req.body.token);
+      }
+      
+      // Clear the refresh token cookie
       res.clearCookie("refreshToken");
       res.status(200).json({ message: "Logged out successfully!" });
     } catch (err) {
+      console.error('Error logging out:', err);
       res.status(500).json({ message: "Error logging out", error: err.message });
     }
   },

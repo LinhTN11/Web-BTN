@@ -27,7 +27,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const MessengerChatPage: React.FC = () => {
-  const { user, token } = useAuth();
+  const { user, token, getValidToken } = useAuth();
   const [message, setMessage] = useState('');
   const [messagesByConversation, setMessagesByConversation] = useState<{ [key: string]: Message[] }>({});
   const [activeUsers, setActiveUsers] = useState<ChatUser[]>([]);
@@ -35,14 +35,35 @@ const MessengerChatPage: React.FC = () => {
   const [typing, setTyping] = useState<{ [key: string]: boolean }>({});
   const typingTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [socketConnected, setSocketConnected] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [socketConnected, setSocketConnected] = useState(false);  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [markedAsReadConversations, setMarkedAsReadConversations] = useState<Set<string>>(new Set());const scrollToBottom = () => {
+    // Method 1: Scroll using ref
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+    
+    // Method 2: Fallback - scroll the messages container
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-  const loadMessages = useCallback(async (userId: string) => {
+    // Method 3: Additional fallback - scroll the chat card body
+    setTimeout(() => {
+      const chatCardBody = document.querySelector('.chat-card .ant-card-body');
+      if (chatCardBody) {
+        const scrollContainer = chatCardBody.querySelector('.messages-container');
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      }
+    }, 10);
+  };  const loadMessages = useCallback(async (userId: string, shouldMarkAsRead: boolean = true) => {
     try {
       const messages = await chatService.getMessages(userId);
       console.log('API getMessages for', userId, 'returned', messages);
@@ -55,8 +76,7 @@ const MessengerChatPage: React.FC = () => {
       const sortedMessages = validMessages.sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
-      
-      setMessagesByConversation(prev => {
+        setMessagesByConversation(prev => {
         const newState = {
           ...prev,
           [userId]: sortedMessages
@@ -64,14 +84,23 @@ const MessengerChatPage: React.FC = () => {
         console.log('setMessagesByConversation after loadMessages:', newState);
         return newState;
       });
-      scrollToBottom();
-      // Mark messages as read
-      chatService.markAsRead(userId)
-        .catch(error => console.error('Error marking messages as read:', error));
+      
+      // Multiple scroll attempts to ensure it works
+      setTimeout(() => scrollToBottom(), 50);
+      setTimeout(() => scrollToBottom(), 150);
+      setTimeout(() => scrollToBottom(), 300);
+      
+      // Mark messages as read only if not already marked and shouldMarkAsRead is true
+      if (shouldMarkAsRead && !markedAsReadConversations.has(userId)) {
+        console.log('Marking messages as read for conversation:', userId);
+        setMarkedAsReadConversations(prev => new Set(prev).add(userId));
+        chatService.markAsRead(userId)
+          .catch(error => console.error('Error marking messages as read:', error));
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
     }
-  }, []);  const loadActiveUsers = useCallback(async () => {
+  }, [markedAsReadConversations]);const loadActiveUsers = useCallback(async () => {
     try {
       const users = await chatService.getActiveUsers();
       // Filter out current user
@@ -85,70 +114,110 @@ const MessengerChatPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading active users:', error);
     }
-  }, [user?._id, selectedUser]);useEffect(() => {
-    if (token && !socketConnected) {
-      console.log('Connecting socket with token');
-      const socket = socketService.connect(`Bearer ${token}`);
-      
-      if (socket) {        socket.on('connect', () => {
-          console.log('Socket connected successfully');
-          setSocketConnected(true);
-          // Reload messages when reconnected
-          if (selectedUser) {
-            loadMessages(selectedUser._id);
-          }
-          loadActiveUsers();
-        });
-
-        socket.on('reconnect', () => {
-          console.log('Socket reconnected successfully');
-          setSocketConnected(true);
-          // Reload messages when reconnected
-          if (selectedUser) {
-            loadMessages(selectedUser._id);
-          }
-          loadActiveUsers();
-        });
-
-        socket.on('connect_error', (error: Error) => {
-          console.error('Socket connection error:', error);
-          setSocketConnected(false);
-        });
-
-        socket.on('disconnect', (reason) => {
-          console.log('Socket disconnected:', reason);
-          // Only set disconnected for permanent disconnections
-          if (reason === 'io server disconnect' || reason === 'io client disconnect') {
-            setSocketConnected(false);
-          }
-          // For temporary disconnections, keep the connected state and let reconnect handle it
-        });
-      }
-
-      loadActiveUsers();
-
-      return () => {
-        console.log('Cleaning up socket connection');
-        if (socketService.isConnected()) {
-          socketService.disconnect();
-        }
-        setSocketConnected(false);
-      };
-    }
-  }, [token, loadActiveUsers, selectedUser, loadMessages]);
+  }, [user?._id]); // Remove selectedUser from dependencies to avoid loops
   useEffect(() => {
-    if (socketConnected) {
-      const messageHandler = (newMessage: Message) => {
+    const connectSocket = async () => {
+      if (token && !socketConnected) {
+        console.log('Attempting to connect socket...');
+        
+        // Get a valid token before connecting
+        const validToken = await getValidToken();
+        if (!validToken) {
+          console.log('No valid token available, skipping socket connection');
+          return;
+        }
+        
+        console.log('Connecting socket with valid token');
+        const socket = socketService.connect(`Bearer ${validToken}`);
+      
+        if (socket) {
+          socket.on('connect', () => {
+            console.log('Socket connected successfully');
+            setSocketConnected(true);
+            // Reload messages when reconnected
+            if (selectedUser) {
+              loadMessages(selectedUser._id);
+            }
+            loadActiveUsers();
+          });
+
+          socket.on('reconnect', () => {
+            console.log('Socket reconnected successfully');
+            setSocketConnected(true);
+            // Reload messages when reconnected
+            if (selectedUser) {
+              loadMessages(selectedUser._id);
+            }
+            loadActiveUsers();
+          });
+
+          socket.on('connect_error', (error: Error) => {
+            console.error('Socket connection error:', error);
+            setSocketConnected(false);
+          });
+
+          socket.on('disconnect', (reason) => {
+            console.log('Socket disconnected:', reason);
+            // Only set disconnected for permanent disconnections
+            if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+              setSocketConnected(false);
+            }
+            // For temporary disconnections, keep the connected state and let reconnect handle it
+          });
+        }
+
+        loadActiveUsers();
+      }
+    };
+
+    // Call the async function
+    connectSocket();
+
+    return () => {
+      console.log('Cleaning up socket connection');
+      if (socketService.isConnected()) {
+        socketService.disconnect();
+      }
+      setSocketConnected(false);
+    };
+  }, [token]); // Remove circular dependencies
+  useEffect(() => {
+    if (socketConnected) {      const messageHandler = (newMessage: Message) => {
         console.log('messageHandler called:', newMessage, 'Current user:', user, 'Selected:', selectedUser);
 
+        // Normalize message format - ensure timestamp is properly set
+        const normalizedMessage = {
+          ...newMessage,
+          timestamp: (() => {
+            // Try different timestamp fields and validate them
+            const possibleTimestamps = [
+              (newMessage as any).createdAt,
+              newMessage.timestamp,
+              (newMessage as any).updatedAt
+            ];
+            
+            for (const ts of possibleTimestamps) {
+              if (ts) {
+                const date = new Date(ts);
+                if (!isNaN(date.getTime())) {
+                  return date;
+                }
+              }
+            }
+            
+            // Fallback to current time if all fail
+            return new Date();
+          })()
+        };
+
         // Extract IDs correctly regardless of the format
-        const senderId = typeof newMessage.sender === 'string' 
-          ? newMessage.sender 
-          : newMessage.sender._id;
+        const senderId = typeof normalizedMessage.sender === 'string' 
+          ? normalizedMessage.sender 
+          : normalizedMessage.sender._id;
         
-        const receiverId = typeof newMessage.receiver === 'string'
-          ? newMessage.receiver 
-          : newMessage.receiver._id;
+        const receiverId = typeof normalizedMessage.receiver === 'string'
+          ? normalizedMessage.receiver 
+          : normalizedMessage.receiver._id;
         
         const userId = String(user?._id);
 
@@ -157,23 +226,22 @@ const MessengerChatPage: React.FC = () => {
           // Get the ID of the other person in the conversation
           const conversationId = senderId === userId ? receiverId : senderId;          setMessagesByConversation(prev => {
             const conversationMessages = prev[conversationId] || [];
-            
-            // Check if this is confirming an optimistic message
+              // Check if this is confirming an optimistic message
             const optimisticIndex = conversationMessages.findIndex(msg => 
               msg._id.startsWith('temp_') && 
-              msg.content === newMessage.content && 
+              msg.content === normalizedMessage.content && 
               senderId === userId &&
-              Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 5000 // Within 5 seconds
+              Math.abs(new Date(msg.timestamp).getTime() - new Date(normalizedMessage.timestamp).getTime()) < 5000 // Within 5 seconds
             );
 
             if (optimisticIndex !== -1) {
               // Replace optimistic message with real message
               const updatedMessages = [...conversationMessages];
               updatedMessages[optimisticIndex] = {
-                ...newMessage,
+                ...normalizedMessage,
                 sender: senderId,
                 receiver: receiverId,
-                _id: String(newMessage._id)
+                _id: String(normalizedMessage._id)
               };
               return {
                 ...prev,
@@ -185,20 +253,20 @@ const MessengerChatPage: React.FC = () => {
 
             // Check if message already exists by ID
             const exists = conversationMessages.some(msg => 
-              String(msg._id) === String(newMessage._id)
+              String(msg._id) === String(normalizedMessage._id)
             );
             
             if (!exists) {
               // Normalize IDs to string for consistency
-              const normalizedMessage = {
-                ...newMessage,
+              const normalizedMessageWithIds = {
+                ...normalizedMessage,
                 sender: senderId,
                 receiver: receiverId,
-                _id: String(newMessage._id)
+                _id: String(normalizedMessage._id)
               };
 
               // Sort messages by timestamp
-              const updatedMessages = [...conversationMessages, normalizedMessage]
+              const updatedMessages = [...conversationMessages, normalizedMessageWithIds]
                 .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
               
               return {
@@ -208,14 +276,15 @@ const MessengerChatPage: React.FC = () => {
             }
             return prev;
           });
-        }
-
-        // Only scroll if the message belongs to the currently selected conversation
+        }        // Only scroll if the message belongs to the currently selected conversation
         if (selectedUser && (
           senderId === String(selectedUser._id) || 
           receiverId === String(selectedUser._id)
         )) {
-          scrollToBottom();
+          // Multiple scroll attempts for reliability
+          setTimeout(() => scrollToBottom(), 10);
+          setTimeout(() => scrollToBottom(), 100);
+          setTimeout(() => scrollToBottom(), 200);
         }
       };      const userOnlineHandler = (userId: string) => {
         console.log('User came online:', userId);
@@ -240,20 +309,43 @@ const MessengerChatPage: React.FC = () => {
       };      socketService.onMessage(messageHandler);
       socketService.onUserOnline(userOnlineHandler);
       socketService.onUserOffline(userOfflineHandler);
-      socketService.onTyping(typingHandler);
-
-      // Handle message confirmation for sender
+      socketService.onTyping(typingHandler);      // Handle message confirmation for sender
       const messageConfirmedHandler = (confirmedMessage: Message) => {
         console.log('messageConfirmedHandler called:', confirmedMessage, 'Current user:', user, 'Selected:', selectedUser);
         
-        // Extract IDs correctly
-        const senderId = typeof confirmedMessage.sender === 'string' 
-          ? confirmedMessage.sender 
-          : confirmedMessage.sender._id;
+        // Normalize message format - ensure timestamp is properly set
+        const normalizedConfirmedMessage = {
+          ...confirmedMessage,
+          timestamp: (() => {
+            // Try different timestamp fields and validate them
+            const possibleTimestamps = [
+              (confirmedMessage as any).createdAt,
+              confirmedMessage.timestamp,
+              (confirmedMessage as any).updatedAt
+            ];
+            
+            for (const ts of possibleTimestamps) {
+              if (ts) {
+                const date = new Date(ts);
+                if (!isNaN(date.getTime())) {
+                  return date;
+                }
+              }
+            }
+            
+            // Fallback to current time if all fail
+            return new Date();
+          })()
+        };
         
-        const receiverId = typeof confirmedMessage.receiver === 'string'
-          ? confirmedMessage.receiver 
-          : confirmedMessage.receiver._id;
+        // Extract IDs correctly
+        const senderId = typeof normalizedConfirmedMessage.sender === 'string' 
+          ? normalizedConfirmedMessage.sender 
+          : normalizedConfirmedMessage.sender._id;
+        
+        const receiverId = typeof normalizedConfirmedMessage.receiver === 'string'
+          ? normalizedConfirmedMessage.receiver 
+          : normalizedConfirmedMessage.receiver._id;
         
         const userId = String(user?._id);
         
@@ -263,24 +355,22 @@ const MessengerChatPage: React.FC = () => {
           
           setMessagesByConversation(prev => {
             const conversationMessages = prev[conversationId] || [];
-            
-            // Find and replace temporary message or add new one if not exists
+              // Find and replace temporary message or add new one if not exists
             const messageExists = conversationMessages.some(msg => 
-              String(msg._id) === String(confirmedMessage._id)
+              String(msg._id) === String(normalizedConfirmedMessage._id)
             );
-            
-            if (!messageExists) {
+              if (!messageExists) {
               // If message doesn't exist, add it
               const normalizedMessage = {
-                ...confirmedMessage,
+                ...normalizedConfirmedMessage,
                 sender: senderId,
                 receiver: receiverId,
-                _id: String(confirmedMessage._id)
+                _id: String(normalizedConfirmedMessage._id)
               };
               
               // Remove any temporary messages with same content
               const filteredMessages = conversationMessages.filter(msg => 
-                !(msg.content === confirmedMessage.content && 
+                !(msg.content === normalizedConfirmedMessage.content && 
                   msg._id.toString().length > 10) // temp IDs are typically longer
               );
               
@@ -319,8 +409,7 @@ const MessengerChatPage: React.FC = () => {
         }
       };
     }
-  }, [socketConnected, user, selectedUser]);
-  useEffect(() => {
+  }, [socketConnected, user, selectedUser]);  useEffect(() => {
     if (selectedUser) {
       // Fetch messages when selecting user
       const fetchMessages = async () => {
@@ -331,6 +420,8 @@ const MessengerChatPage: React.FC = () => {
             ...prev,
             [selectedUser._id]: messages
           }));
+          // Auto-scroll after loading messages for selected user
+          setTimeout(() => scrollToBottom(), 100);
         } catch (error) {
           console.error('Error fetching messages:', error);
         } finally {
@@ -340,38 +431,16 @@ const MessengerChatPage: React.FC = () => {
       fetchMessages();
     }
   }, [selectedUser?._id]);
-
-  // Add periodic refresh
+  // Auto-scroll when messages change for current conversation
   useEffect(() => {
-    const refreshInterval = setInterval(async () => {
-      if (selectedUser) {
-        const messages = await chatService.getMessages(selectedUser._id);
-        setMessagesByConversation(prev => ({
-          ...prev,
-          [selectedUser._id]: messages
-        }));
-      }
-    }, 10000); // Refresh every 10 seconds
-
-    return () => clearInterval(refreshInterval);
-  }, [selectedUser]);
-
-  // Add function to refresh users list
-  const refreshUsersList = async () => {
-    try {
-      const users = await chatService.getActiveUsers();
-      setActiveUsers(users);
-    } catch (error) {
-      console.error('Error refreshing users list:', error);
+    if (selectedUser && messagesByConversation[selectedUser._id]) {
+      // Multiple scroll attempts with different delays to ensure it works
+      const scrollAttempts = [10, 50, 100, 200];
+      scrollAttempts.forEach(delay => {
+        setTimeout(() => scrollToBottom(), delay);
+      });
     }
-  };
-
-  // Refresh users list periodically
-  useEffect(() => {
-    refreshUsersList();
-    const interval = setInterval(refreshUsersList, 30000); // Every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+  }, [messagesByConversation, selectedUser?._id]);
 
   // Handle page visibility changes (tab switching)
   useEffect(() => {
@@ -448,16 +517,15 @@ const MessengerChatPage: React.FC = () => {
       timestamp: new Date(),
       isRead: false,
       status: 'sending'
-    };
-
-    // Add optimistic message to UI immediately
+    };    // Add optimistic message to UI immediately
     setMessagesByConversation(prev => ({
       ...prev,
       [selectedUser._id]: [...(prev[selectedUser._id] || []), optimisticMessage]
     }));
 
-    // Scroll to bottom immediately
+    // Scroll to bottom immediately and again after a delay
     setTimeout(() => scrollToBottom(), 10);
+    setTimeout(() => scrollToBottom(), 100);
 
     try {
       // Clear typing status

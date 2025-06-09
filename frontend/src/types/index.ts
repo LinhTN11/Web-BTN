@@ -23,7 +23,10 @@ export interface AuthContextType {
   refreshUserData: () => Promise<void>;
   getUsers: () => User[];
   refreshUsers: () => Promise<User[]>;
+  updateUserInList: (userId: string, updatedData: Partial<User>) => void;
+  removeUserFromList: (userId: string) => void;
   clearCache: () => void;
+  getValidToken: () => Promise<string | null>;
 }
 
 export interface LoginFormData {
@@ -51,6 +54,7 @@ export interface Message {
   content: string;
   messageType: 'text' | 'image';
   timestamp: Date;
+  createdAt?: Date; // Backend uses createdAt for timestamps
   isRead: boolean;
   readAt?: Date;
   status?: 'sending' | 'sent' | 'error';

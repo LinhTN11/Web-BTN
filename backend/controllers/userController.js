@@ -81,11 +81,30 @@ const userController = {
             console.error('Error deleting user:', error);
             res.status(500).json({ message: 'Lỗi khi xóa người dùng' });
         }
-    },
-    //Update user profile (admin only - can update any user)
+    },    //Update user profile (admin only - can update any user)
     updateUserByAdmin: async (req, res) => {
         try {
             const updates = req.body;
+            const userId = req.params.id;
+            
+            console.log('Admin updating user:', userId, 'with data:', updates);
+            
+            // Validate email uniqueness if email is being updated
+            if (updates.email) {
+                const existingUser = await User.findOne({ 
+                    email: updates.email.toLowerCase(),
+                    _id: { $ne: userId }
+                });
+                
+                if (existingUser) {
+                    return res.status(400).json({ 
+                        message: 'Email này đã được sử dụng bởi người dùng khác' 
+                    });
+                }
+                
+                // Ensure email is lowercase
+                updates.email = updates.email.toLowerCase();
+            }
             
             // Hash password if it's being updated
             if (updates.password) {
@@ -94,18 +113,46 @@ const userController = {
             }
 
             const user = await User.findByIdAndUpdate(
-                req.params.id,
+                userId,
                 { $set: updates },
-                { new: true }
+                { 
+                    new: true, 
+                    runValidators: true,
+                    context: 'query'
+                }
             ).select('-password');
 
             if (!user) {
                 return res.status(404).json({ message: 'Không tìm thấy người dùng' });
             }
 
+            console.log('User updated successfully:', user);
             res.status(200).json(user);
         } catch (error) {
             console.error('Error updating user:', error);
+            
+            // Handle specific MongoDB errors
+            if (error.code === 11000) {
+                const duplicateField = Object.keys(error.keyPattern || {})[0];
+                if (duplicateField === 'email') {
+                    return res.status(400).json({ 
+                        message: 'Email này đã được sử dụng bởi người dùng khác' 
+                    });
+                } else if (duplicateField === 'username') {
+                    return res.status(400).json({ 
+                        message: 'Tên đăng nhập này đã được sử dụng' 
+                    });
+                }
+            }
+            
+            // Handle validation errors
+            if (error.name === 'ValidationError') {
+                const errorMessages = Object.values(error.errors).map(err => err.message);
+                return res.status(400).json({ 
+                    message: errorMessages.join(', ')
+                });
+            }
+            
             res.status(500).json({ message: 'Lỗi khi cập nhật thông tin người dùng' });
         }
     },

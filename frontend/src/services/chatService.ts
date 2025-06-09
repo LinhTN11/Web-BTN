@@ -16,12 +16,11 @@ export interface ChatUser {
 
 export const chatService = {  getMessages: async (userId: string): Promise<Message[]> => {
     try {
-      const response = await api.get(`/v1/chat/conversation/${userId}`);
+      const response = await api.get(`/chat/conversation/${userId}`);
       // Ensure we're getting the correct data structure
       const messages = Array.isArray(response.data) ? response.data : 
                       (response.data.data?.messages || response.data.messages || []);
-      
-      // Ensure each message has the correct structure
+        // Ensure each message has the correct structure
       return messages.map((msg: any): Message => ({
         _id: msg._id || '',
         content: typeof msg.content === 'string' ? msg.content : String(msg.content || ''),
@@ -38,9 +37,29 @@ export const chatService = {  getMessages: async (userId: string): Promise<Messa
               username: msg.receiver.username || 'Unknown',
               avatar: msg.receiver.avatar
             }
-          : { _id: String(msg.receiver || ''), username: 'Unknown' },
-        messageType: msg.messageType === 'image' ? 'image' : 'text',
-        timestamp: new Date(msg.timestamp || Date.now()),
+          : { _id: String(msg.receiver || ''), username: 'Unknown' },        messageType: msg.messageType === 'image' ? 'image' : 'text',
+        timestamp: (() => {
+          // Try different timestamp fields and validate them
+          const possibleTimestamps = [
+            msg.createdAt,
+            msg.timestamp,
+            msg.updatedAt,
+            Date.now()
+          ];
+          
+          for (const ts of possibleTimestamps) {
+            if (ts) {
+              const date = new Date(ts);
+              if (!isNaN(date.getTime())) {
+                return date;
+              }
+            }
+          }
+          
+          // Fallback to current time if all fail
+          return new Date();
+        })(),
+        createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
         isRead: Boolean(msg.isRead || msg.read),
         readAt: msg.readAt ? new Date(msg.readAt) : undefined,
         status: msg.status
@@ -52,7 +71,7 @@ export const chatService = {  getMessages: async (userId: string): Promise<Messa
   },
 
   sendMessage: async (receiverId: string, content: string, messageType: string = 'text'): Promise<Message> => {
-    const response = await api.post('/v1/chat/send', {
+    const response = await api.post('/chat/send', {
       receiverId,
       content,
       messageType
@@ -61,21 +80,20 @@ export const chatService = {  getMessages: async (userId: string): Promise<Messa
   },
 
   markAsRead: async (senderId: string): Promise<void> => {
-    await api.post('/v1/chat/read', { senderId });
+    await api.post('/chat/read', { senderId });
   },
   getActiveUsers: async (): Promise<ChatUser[]> => {
     try {
-      const response = await api.get('/v1/chat/users');
+      const response = await api.get('/chat/users');
       // Handle different response structures
       const users = Array.isArray(response.data) ? response.data : 
                    (response.data.data?.users || response.data.users || []);
-      
-      return users.map((user: any): ChatUser => ({
+        return users.map((user: any): ChatUser => ({
         _id: user._id || '',
         username: user.username || 'Unknown',
         avatar: user.avatar,
         isOnline: !!user.isOnline,
-        lastSeen: user.lastSeen ? new Date(user.lastSeen) : undefined
+        lastSeen: user.lastActive ? new Date(user.lastActive) : undefined
       }));
     } catch (error) {
       console.error('Error fetching active users:', error);
@@ -88,19 +106,19 @@ export const chatService = {  getMessages: async (userId: string): Promise<Messa
     lastMessage: Message | null;
     unreadCount: number;
   }[]> => {
-    const response = await api.get('/v1/chat/conversations');
+    const response = await api.get('/chat/conversations');
     return response.data;
   },
 
   getUnreadCount: async (): Promise<number> => {
-    const response = await api.get('/v1/chat/unread-count');
+    const response = await api.get('/chat/unread-count');
     return response.data.unreadCount;
   },
 
   // Add new function to get user by ID
   getUserById: async (userId: string): Promise<ChatUser | null> => {
     try {
-      const response = await api.get(`/v1/user/${userId}`);
+      const response = await api.get(`/user/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching user:', error);

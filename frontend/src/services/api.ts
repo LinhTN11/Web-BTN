@@ -35,26 +35,55 @@ api.interceptors.response.use(
       return Promise.reject(new Error('Request timed out'));
     }
 
+    // Skip token refresh for logout requests
+    if (originalRequest.url?.includes('/auth/logout')) {
+      return Promise.reject(error);
+    }
+
     // Handle token expiration
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && 
+        (error.response?.data?.code === 'TOKEN_EXPIRED' || 
+         error.response?.data?.message?.includes('hết hạn')) && 
+        !originalRequest._retry) {
+      
       originalRequest._retry = true;
+      
       try {
-        // Try to refresh token
+        console.log('Token expired, attempting to refresh...');        // Try to refresh token
         const response = await api.post('/auth/refresh');
+        
         if (response.data?.accessToken) {
-          localStorage.setItem('token', response.data.accessToken);
-          originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+          const newToken = response.data.accessToken;
+          localStorage.setItem('token', newToken);
+          
+          // Update the failed request with new token
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          
+          console.log('Token refreshed successfully, retrying original request');
           return api(originalRequest);
         }
         throw new Error('No token in refresh response');
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // If refresh fails, logout user
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        // Force reload to login page
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
+    
+    // Handle other auth errors
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // If it's a non-retryable auth error, logout
+      if (originalRequest._retry) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -64,11 +93,18 @@ export const authAPI = {
     const response = await api.post('/auth/login', data);
     return response.data;
   },
-
   logout: async () => {
     try {
       await api.post('/auth/logout');
+    } catch (error: any) {
+      // Ignore 401/403 errors during logout as they don't affect the logout process
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log('Token already invalid during logout - proceeding with client-side cleanup');
+      } else {
+        console.error('Logout error:', error);
+      }
     } finally {
+      // Always clear local storage regardless of API call result
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
@@ -81,6 +117,11 @@ export const authAPI = {
 
   refreshToken: async () => {
     const response = await api.post('/auth/refresh');
+    return response.data;
+  },
+
+  heartbeat: async () => {
+    const response = await api.post('/auth/heartbeat');
     return response.data;
   }
 };
