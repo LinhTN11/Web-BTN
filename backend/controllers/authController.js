@@ -34,7 +34,7 @@ const authController = {
           role: user.role,
         },
         process.env.JWT_ACCESS_KEY || 'fallback_access_key',
-        { expiresIn: "30s" }
+        { expiresIn: "3000000s" }
       );
     } catch (error) {
       console.error('Error generating access token:', error);

@@ -7,19 +7,15 @@ import {
   SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BookOutlined
+  BookOutlined,
+  PlusCircleOutlined,
+  PieChartOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './Sidebar.css';
 
 const { Sider } = Layout;
-
-interface SidebarProps {
-  collapsed: boolean;
-  mobileOpen?: boolean;
-  onMobileClose?: () => void;
-}
 
 interface SidebarProps {
   collapsed: boolean;
@@ -43,6 +39,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <DashboardOutlined />,
       label: 'Dashboard',
     }] : []),
+    ...(user?.role === 'admin' ? [{
+      key: '/statistics',
+      icon: <PieChartOutlined />,
+      label: 'Thống kê',
+    }] : []),
     {
       key: '/chat',
       icon: <MessageOutlined />,
@@ -58,6 +59,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <SettingOutlined />,
       label: 'Settings',
     },
+    ...(user?.role === 'admin' ? [{
+      key: '/create-task',
+      icon: <PlusCircleOutlined />,
+      label: 'Assigned tasks',
+    }] : []),
     {
       key: '/tasks',
       icon: <BookOutlined />,

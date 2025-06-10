@@ -89,14 +89,14 @@ const taskController = {
         });
       }
 
-      // Validate user can update this task
-      if (existingTask.assignedTo.toString() !== req.user.id) {
+      // Validate user can update this task (must be admin or assigned user)
+      if (req.user.role !== 'admin' && existingTask.assignedTo.toString() !== req.user.id) {
         console.log('⛔ Unauthorized update attempt');
         console.log('Task assignedTo:', existingTask.assignedTo);
         console.log('User ID:', req.user.id);
         return res.status(403).json({ 
           success: false, 
-          message: 'You can only update tasks assigned to you' 
+          message: 'You are not authorized to update this task' 
         });
       }
 
@@ -112,6 +112,27 @@ const taskController = {
       res.status(200).json({ success: true, data: updatedTask });
     } catch (error) {
       console.error('❌ Error updating task:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  // Delete a task (admin only)
+  deleteTask: async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log('🗑️ Deleting task:', id);
+
+      const task = await Task.findById(id);
+      if (!task) {
+        console.log('❌ Task not found for deletion:', id);
+        return res.status(404).json({ success: false, message: 'Task not found' });
+      }
+
+      await Task.findByIdAndDelete(id);
+      console.log('✅ Task deleted successfully:', id);
+      res.status(200).json({ success: true, message: 'Task deleted successfully' });
+    } catch (error) {
+      console.error('❌ Error deleting task:', error);
       res.status(500).json({ success: false, message: error.message });
     }
   },
