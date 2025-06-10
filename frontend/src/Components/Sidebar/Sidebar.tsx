@@ -36,8 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
-  const menuItems = [
+  const { user } = useAuth();  const menuItems = [
     ...(user?.role === 'admin' ? [{
       key: '/dashboard',
       icon: <DashboardOutlined />,
@@ -54,14 +53,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: 'Users',
     }] : []),
     {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-    },
-    {
       key: '/tasks',
       icon: <BookOutlined />,
       label: 'Tasks',
+    },
+    {
+      key: '/settings',
+      icon: <SettingOutlined />,
+      label: 'Settings',
     },
   ];
   const handleMenuClick = ({ key }: { key: string }) => {
@@ -86,14 +85,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick={onMobileClose}
         />
       )}
-      
-      <Sider
-        trigger={null}
-        collapsible
+        <Sider
+        trigger={null} // Disable default trigger
+        collapsible={false} // Disable built-in collapsible behavior
         collapsed={collapsed}
         className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}
         width={240}
         collapsedWidth={80}
+        onCollapse={() => {}} // Prevent any automatic collapse
       >
         <div className="logo-container">
           <img 
@@ -102,16 +101,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="sidebar-logo"
           />
           {!collapsed && <span className="logo-text">Evine</span>}
+        </div>        <div className="sidebar-content">
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={handleMenuClick}
+            className="sidebar-menu"
+            inlineCollapsed={collapsed}
+            triggerSubMenuAction="click" // Only click, not hover
+          />
         </div>
-        
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="sidebar-menu"
-        />
 
         {/* Collapse button */}
         <div className="collapse-button" onClick={handleCollapse}>

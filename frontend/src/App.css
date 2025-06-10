@@ -180,3 +180,17 @@ body {
   outline: none;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
+
+/* Global dropdown styles - ensure all dropdowns are above everything */
+.ant-dropdown {
+  z-index: 1200 !important;
+}
+
+.ant-dropdown-menu {
+  z-index: 1200 !important;
+}
+
+/* Ensure dropdown overlays are visible */
+.ant-dropdown-menu-root {
+  z-index: 1200 !important;
+}

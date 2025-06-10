@@ -115,12 +115,34 @@
 .messages-container {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   background: #fafafa;
   height: calc(100% - 60px); /* Subtract input area height */
   min-height: calc(100vh - 230px); /* Ensure minimum height */
   display: flex;
   flex-direction: column;
+  scroll-behavior: smooth; /* Smooth scrolling */
+  scrollbar-width: thin; /* Firefox */
+}
+
+/* Webkit scrollbar styling */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .message-item {

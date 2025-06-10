@@ -3,40 +3,32 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
-  background: #fff;
+  background: #ffffff; /* Change to white background */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  z-index: 50;
+  z-index: 120;
   position: relative;
   width: 100%;
   height: 60px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e8e8e8; /* Light border */
   backdrop-filter: blur(8px);
 }
 
-
-/* Removed trigger button styles */
-
-.logo {
+.header-left {
   display: flex;
   align-items: center;
-}
-
-.logo-img {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   height: 100%;
-  margin-top: -8px;
+  position: relative;
+  z-index: 121; /* Ensure dropdown container is above everything */
 }
 
 .user-info {
   cursor: pointer;
-  padding: 0 16px;
+  padding: 8px 16px;
   height: 100%;
   transition: all 0.2s ease;
   display: flex;
@@ -46,23 +38,41 @@
   box-sizing: border-box;
   border: none;
   background: transparent;
+  border-radius: 4px;
 }
 
 .user-info:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(0, 0, 0, 0.05); /* Light hover for white background */
 }
 
 .user-avatar {
-  border: 2px solid #93bbe0;
-  margin: 0;
-  vertical-align: middle;
+  border: 2px solid rgba(0, 0, 0, 0.1); /* Dark border for white background */
 }
 
 .username {
-  font-weight: 500;
-  color: #333;
+  color: rgba(0, 0, 0, 0.85); /* Dark text for white background */
   font-size: 14px;
-  margin: 0;
-  line-height: 1;
-  vertical-align: middle;
+  font-weight: 500;
+}
+
+/* Dropdown styles */
+.ant-dropdown {
+  z-index: 1200 !important;
+}
+
+.ant-dropdown-menu {
+  z-index: 1200 !important;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  min-width: 160px;
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 12px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: #f5f5f5;
 }

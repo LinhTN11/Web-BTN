@@ -17,12 +17,15 @@ const middlewareController = {
                 ? authHeader.slice(7) 
                 : authHeader;
 
+            console.log(`Token verification for ${req.method} ${req.path}`);
+
             // Verify token
             jwt.verify(
                 token, 
                 process.env.JWT_ACCESS_KEY, 
                 (error, decoded) => {
                     if (error) {
+                        console.log('Token verification failed:', error.name, error.message, 'for route:', req.path);
                         if (error.name === 'TokenExpiredError') {
                             return res.status(401).json({
                                 message: "Token đã hết hạn",
@@ -34,6 +37,7 @@ const middlewareController = {
                             code: "INVALID_TOKEN"
                         });
                     }
+                    console.log('Token verified successfully for user:', decoded.id, 'route:', req.path);
                     req.user = decoded;
                     next();
                 }

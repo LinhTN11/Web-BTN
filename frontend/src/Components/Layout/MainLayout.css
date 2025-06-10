@@ -1,7 +1,8 @@
 /* Main Layout Styles */
 .main-layout {
   min-height: 100vh;
-  background: #f5f5f5;
+  height: auto;
+  background: #f5f5f5; /* Change to light background */
   position: relative;
   width: 100%;
   display: flex;
@@ -27,41 +28,42 @@
 }
 
 .header-wrapper {
-  position: sticky;
+  position: relative;
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  z-index: 125;
   width: 100%;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: transparent; /* Remove black background */
+  transition: all 0.3s ease;
+  overflow: visible;
 }
 
 .content {
   flex: 1;
-  background: #f5f5f5;
+  background: #f5f5f5; /* Keep content background light */
   position: relative;
   width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0; /* Important for flex child overflow */
+  z-index: 15; /* Above the pseudo-element background */
 }
 
 .content-wrapper {
-  flex: 1;
+  padding: 24px;
+  min-height: calc(100vh - 60px); /* Only subtract header height */
+  background: #f5f5f5;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: auto; /* Allow content to expand */
+  flex: 1;
   position: relative;
   overflow: auto;
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
-}
-
-.content-wrapper {
-  padding: 24px;
-  min-height: calc(100vh - 60px);
-  background: #f5f5f5;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 /* Mobile responsive */
@@ -118,4 +120,23 @@
 .content {
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* Ensure layout can expand vertically with content */
+.main-layout {
+  height: auto;
+  min-height: 100vh;
+}
+
+/* For very long content, ensure sidebar extends accordingly */
+@media (min-width: 769px) {
+  .main-layout {
+    position: relative;
+  }
+  
+  .sidebar {
+    position: absolute;
+    height: 100%;
+    min-height: 100vh;
+  }
 }

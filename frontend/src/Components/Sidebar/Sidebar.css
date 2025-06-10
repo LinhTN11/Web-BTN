@@ -1,11 +1,11 @@
 .sidebar {
-  position: fixed;
+  position: absolute;
   left: 0;
   top: 0;
-  bottom: 0;
-  height: 100vh;
+  min-height: 100vh;
+  height: 100%;
   width: 240px;
-  z-index: 49;
+  z-index: 100; /* Lower than header z-index (120) */
   background: #001529;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -32,7 +32,9 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   min-height: 60px;
   height: 60px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease; /* Sync with sidebar width transition */
+  position: relative;
+  z-index: 90; /* Lower than header */
 }
 
 .sidebar-logo {
@@ -41,7 +43,7 @@
   min-width: 20px;
   min-height: 20px;
   border-radius: 3px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease; /* Sync with sidebar width transition */
   object-fit: contain;
 }
 
@@ -51,7 +53,7 @@
   font-weight: 500;
   margin-left: 8px;
   opacity: 1;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease; /* Sync with sidebar width transition */
   white-space: nowrap;
 }
 
@@ -66,11 +68,20 @@
   margin-left: 0;
 }
 
-.sidebar-menu {
+.sidebar-content {
   flex: 1;
-  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-menu {
   border-right: 0;
   background: transparent;
+  overflow-x: hidden;
+  flex: 1;
+  margin: 8px 0;
+  overflow-y: auto; /* Allow scrolling if menu items are too many */
 }
 
 .sidebar-menu .ant-menu-item {
@@ -78,7 +89,7 @@
   border-radius: 6px;
   height: 44px;
   line-height: 44px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease; /* Sync with sidebar width transition */
   overflow: hidden;
 }
 
@@ -115,10 +126,50 @@
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 110; /* Ensure it's above other elements */
 }
 
 .collapse-button:hover {
   background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05); /* Slight scale on hover to emphasize it's clickable */
+}
+
+.collapse-button:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
+
+/* Prevent sidebar from expanding on icon/menu clicks */
+.sidebar .ant-layout-sider-trigger {
+  display: none !important; /* Hide default trigger */
+}
+
+/* Ensure only collapse button can trigger sidebar expansion */
+.sidebar .sidebar-content,
+.sidebar .logo-container,
+.sidebar .sidebar-menu {
+  pointer-events: auto; /* Allow normal menu interactions */
+}
+
+/* Prevent any unintended sidebar expansion triggers */
+.sidebar:not(.ant-layout-sider-collapsed):hover {
+  width: 240px !important; /* Lock width on hover */
+}
+
+.sidebar.ant-layout-sider-collapsed:hover {
+  width: 80px !important; /* Lock collapsed width on hover */
+}
+
+/* Ensure menu items don't trigger sidebar expansion */
+.sidebar .ant-menu-item,
+.sidebar .ant-menu-submenu {
+  transition: none !important; /* Remove transitions that might affect sidebar */
+}
+
+.sidebar .ant-menu-item:hover,
+.sidebar .ant-menu-submenu:hover {
+  width: auto !important; /* Prevent width changes on menu hover */
 }
 
 /* Make sure sidebar never covers header */
@@ -128,14 +179,31 @@
   }
 }
 
+/* Ensure sidebar extends with content height */
+@media (min-width: 769px) {
+  .sidebar {
+    position: absolute;
+    min-height: 100vh;
+    height: auto; /* Allow height to grow with content */
+  }
+  
+  /* Make sure main layout can grow */
+  .main-layout {
+    min-height: 100vh;
+    height: auto;
+  }
+}
+
 /* Responsive: sidebar overlays content on mobile */
 @media (max-width: 768px) {
   .sidebar {
+    position: fixed;
     transform: translateX(-100%);
     width: 240px;
     left: 0;
     top: 0;
     height: 100vh;
+    min-height: 100vh;
   }
   .sidebar.mobile-open {
     transform: translateX(0);

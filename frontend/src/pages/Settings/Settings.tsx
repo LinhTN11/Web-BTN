@@ -41,7 +41,7 @@ const Settings: React.FC = () => {
 };
 
 const SettingsContent: React.FC = () => {
-  const { user, login, token } = useAuth();
+  const { user, updateUser, token } = useAuth();
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -60,9 +60,71 @@ const SettingsContent: React.FC = () => {
         address: user.address || ''
       });
     }
-  }, [user, form]);
-
-  const handleAvatarChange = async (info: any) => {
+  }, [user, form]);  // Function to resize image with better compression
+  const resizeImage = (file: File, maxWidth: number = 800, maxHeight: number = 800, quality: number = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        try {
+          // Calculate new dimensions while maintaining aspect ratio
+          let { width, height } = img;
+          
+          // Only resize if image is larger than max dimensions
+          if (width > maxWidth || height > maxHeight) {
+            const aspectRatio = width / height;
+            
+            if (width > height) {
+              width = Math.min(width, maxWidth);
+              height = width / aspectRatio;
+            } else {
+              height = Math.min(height, maxHeight);
+              width = height * aspectRatio;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw image with high quality
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+          }
+          
+          // Always convert to JPEG for better compression (except for transparent images)
+          const outputType = file.type.includes('png') && quality > 0.5 ? 'image/png' : 'image/jpeg';
+          
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const resizedFile = new File([blob], file.name.replace(/\.[^/.]+$/, outputType === 'image/jpeg' ? '.jpg' : '.png'), {
+                  type: outputType,
+                  lastModified: Date.now(),
+                });
+                resolve(resizedFile);
+              } else {
+                reject(new Error('Failed to compress image'));
+              }
+            },
+            outputType,
+            quality
+          );
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };const handleAvatarChange = async (info: any) => {
     if (info.file.status === 'uploading') {
       setAvatarLoading(true);
       return;
@@ -71,35 +133,97 @@ const SettingsContent: React.FC = () => {
     if (info.file.status === 'done' || info.file.originFileObj) {
       const file = info.file.originFileObj || info.file;
       
-      // Validate file size (max 1MB)
-      if (file.size > 1024 * 1024) {
-        message.error('Kích thước ảnh không được vượt quá 1MB!');
-        setAvatarLoading(false);
-        return;
-      }
-
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
+      try {        setAvatarLoading(true);
+        // Always resize/compress images for optimal performance
+        let processedFile = file;
+        const targetSize = 100 * 1024; // Target 100KB for avatar images
+        
         try {
-          const base64 = reader.result as string;
-          await userAPI.updateProfile({ avatar: base64 });
+          // More aggressive compression strategy
+          // Start with smaller dimensions and lower quality
+          processedFile = await resizeImage(file, 400, 400, 0.6);
           
-          // Update user context
-          if (user) {
-            const updatedUser = { ...user, avatar: base64 };
-            login(updatedUser, token!);
-            setProfileData(updatedUser);
+          // If still too large, compress more
+          if (processedFile.size > targetSize) {
+            processedFile = await resizeImage(file, 300, 300, 0.5);
           }
           
-          message.success('Cập nhật avatar thành công!');
-        } catch (error) {
-          message.error('Không thể cập nhật avatar!');
-        } finally {
-          setAvatarLoading(false);
+          // Further compression if needed
+          if (processedFile.size > targetSize) {
+            processedFile = await resizeImage(file, 250, 250, 0.4);
+          }
+          
+          // Last resort for very large images
+          if (processedFile.size > targetSize) {
+            processedFile = await resizeImage(file, 200, 200, 0.3);
+          }
+          
+          // Final check - if still too large, use minimum quality
+          if (processedFile.size > targetSize) {
+            processedFile = await resizeImage(file, 150, 150, 0.2);
+          }
+        } catch (resizeError) {
+          console.error('Resize error:', resizeError);
+          // If resize fails, try one simple compression
+          try {
+            processedFile = await resizeImage(file, 200, 200, 0.3);
+          } catch (fallbackError) {
+            console.error('Fallback resize error:', fallbackError);
+            message.error('Không thể tối ưu ảnh. Vui lòng chọn ảnh khác có kích thước nhỏ hơn.');
+            setAvatarLoading(false);
+            return;
+          }
         }
-      };
-      reader.readAsDataURL(file);
+          // Final size check
+        if (processedFile.size > 1024 * 1024) { // 1MB limit
+          message.error('Ảnh vẫn quá lớn sau khi tối ưu. Vui lòng chọn ảnh có kích thước nhỏ hơn.');
+          setAvatarLoading(false);
+          return;
+        }
+          // Convert to base64
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {            console.log('Uploading avatar, token:', localStorage.getItem('token')?.substring(0, 20) + '...');
+            const base64 = reader.result as string;
+            console.log('Base64 size:', base64.length);
+            await userAPI.updateProfile({ avatar: base64 });
+            
+            // Update user context
+            if (user) {
+              const updatedUser = { ...user, avatar: base64 };
+              updateUser(updatedUser);
+              setProfileData(updatedUser);
+            }
+            
+            message.success('Cập nhật avatar thành công!');
+          } catch (error: any) {
+            console.error('Upload error:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            
+            if (error.response?.status === 403) {
+              message.error('Lỗi xác thực. Vui lòng đăng nhập lại.');
+            } else if (error.response?.status === 413 || error.message?.includes('too large')) {
+              message.error('Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn.');
+            } else {
+              message.error(error.response?.data?.message || 'Không thể cập nhật avatar!');
+            }
+          } finally {
+            setAvatarLoading(false);
+          }
+        };
+        
+        reader.onerror = () => {
+          message.error('Có lỗi xảy ra khi đọc file ảnh!');
+          setAvatarLoading(false);
+        };
+        
+        reader.readAsDataURL(processedFile);
+      } catch (error) {
+        console.error('Avatar change error:', error);
+        message.error('Có lỗi xảy ra khi xử lý ảnh!');
+        setAvatarLoading(false);
+      }
     }
   };
   const handleProfileUpdate = async (values: any) => {
@@ -126,12 +250,11 @@ const SettingsContent: React.FC = () => {
       }
 
       await userAPI.updateProfile(updateData);
-      
-      // Update user context (exclude password from context)
+        // Update user context (exclude password from context)
       if (user) {
         const updatedUser = { ...user, ...updateData };
         delete updatedUser.password; // Don't store password in context
-        login(updatedUser, token!);
+        updateUser(updatedUser);
         setProfileData(updatedUser);
       }
       
@@ -146,18 +269,17 @@ const SettingsContent: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const beforeUpload = (file: File) => {
+  };  const beforeUpload = (file: File) => {
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
       message.error('Chỉ được tải lên file ảnh!');
       return false;
     }
     
-    const isLt1M = file.size / 1024 / 1024 < 1;
-    if (!isLt1M) {
-      message.error('Kích thước ảnh phải nhỏ hơn 1MB!');
+    // Check if file is too large (max 20MB - will be auto-compressed)
+    const isLt20M = file.size / 1024 / 1024 < 20;
+    if (!isLt20M) {
+      message.error('Kích thước ảnh không được vượt quá 20MB!');
       return false;
     }
     
@@ -188,12 +310,15 @@ const SettingsContent: React.FC = () => {
                 src={profileData.avatar}
                 icon={<UserOutlined />}
                 className="user-avatar"
-              />
-              <Upload
+              />              <Upload
                 name="avatar"
                 showUploadList={false}
                 beforeUpload={beforeUpload}
-                onChange={handleAvatarChange}
+                customRequest={({ file, onSuccess }) => {
+                  // Custom request to handle file upload manually
+                  handleAvatarChange({ file: { originFileObj: file, status: 'done' } });
+                  onSuccess?.("ok");
+                }}
                 accept="image/*"
               >
                 <Button 
@@ -203,7 +328,13 @@ const SettingsContent: React.FC = () => {
                 >
                   Thay đổi ảnh đại diện
                 </Button>
-              </Upload>              <div className="user-info">
+              </Upload>
+              
+              <Text type="secondary" style={{ fontSize: '12px', textAlign: 'center', marginTop: '8px', display: 'block' }}>
+                Ảnh lớn sẽ được tự động tối ưu kích thước
+              </Text>
+
+              <div className="user-info">
                 <Text type="secondary">
                   Vai trò: {profileData.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
                 </Text>

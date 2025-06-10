@@ -13,19 +13,25 @@ class SocketService {
   private userOfflineCallbacks: UserOfflineCallback[] = [];
   private typingCallbacks: TypingCallback[] = [];
   private heartbeatInterval: NodeJS.Timeout | null = null;
-  private lastToken: string = '';
-
-  connect(token: string) {
+  private lastToken: string = '';  connect(token: string) {
     this.lastToken = token;
+    console.log('Connecting socket with token:', { 
+      tokenExists: !!token, 
+      tokenLength: token?.length, 
+      startsWithBearer: token?.startsWith('Bearer '),
+      tokenPreview: token?.substring(0, 20) + '...'
+    });
+    
     if (!this.socket || this.socket.disconnected) {
       this.socket = io(process.env.REACT_APP_API_URL || 'http://localhost:8000', {
         auth: { token },
         transports: ['websocket'], // Chỉ sử dụng websocket để giảm overhead
         reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
-        timeout: 10000
+        reconnectionDelay: 2000, // Tăng delay lên 2 giây
+        reconnectionAttempts: 3, // Giảm xuống 3 attempts
+        timeout: 15000 // Tăng timeout lên 15 giây
       });
+      
       this.socket.on('connect', () => {
         console.log('Socket connected');
         this.startHeartbeat();
@@ -45,27 +51,50 @@ class SocketService {
 
       this.socket.on('connect_error', (error: Error) => {
         console.error('Socket connection error:', error);
-      });      this.socket.on('disconnect', (reason) => {
+        
+        // Check if error is due to expired token
+        if (error.message?.includes('Authentication error') || 
+            error.message?.includes('jwt expired') ||
+            error.message?.includes('invalid token')) {
+          console.log('Authentication error detected, stopping reconnection attempts');
+          this.socket?.disconnect();
+          return;
+        }
+      });this.socket.on('disconnect', (reason) => {
         console.log('Socket disconnected:', reason);
-        if (reason === 'transport close' || 
-            reason === 'transport error' || 
-            reason === 'ping timeout') {
-          console.log('Temporary disconnect, socket will try to reconnect...');
+        this.stopHeartbeat();
+        
+        // Only attempt manual reconnection for specific temporary disconnects
+        if (reason === 'transport close' || reason === 'transport error') {
+          console.log('Temporary disconnect, socket will auto-reconnect...');
+          // Let socket.io handle automatic reconnection, don't force it
+        } else if (reason === 'ping timeout') {
+          console.log('Ping timeout, will attempt reconnection...');
           setTimeout(() => {
-            if (!this.socket?.connected) {
-              console.log('Force reconnecting socket after disconnect...');
+            if (!this.socket?.connected && this.lastToken) {
+              console.log('Attempting reconnection after ping timeout...');
               this.forceReconnect(this.lastToken);
             }
-          }, 2000);
+          }, 5000); // Increased delay to 5 seconds
         } else {
           console.log('Permanent disconnect:', reason);
         }
       });      this.socket.on('reconnect_failed', () => {
         console.error('Socket failed to reconnect after all attempts');
+        console.log('All reconnection attempts failed, token may be expired');
+        this.disconnect(); // Stop trying to reconnect
       });
 
       this.socket.on('reconnect_error', (error) => {
         console.error('Socket reconnection error:', error);
+        
+        // If it's an auth error, stop trying to reconnect
+        if (error.message?.includes('Authentication error') || 
+            error.message?.includes('jwt expired') ||
+            error.message?.includes('invalid token')) {
+          console.log('Auth error during reconnection, stopping attempts');
+          this.socket?.disconnect();
+        }
       });
 
       // Message events

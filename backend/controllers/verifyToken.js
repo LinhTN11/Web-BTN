@@ -8,32 +8,50 @@ const verifyToken = (req, res, next) => {
     const accessToken = token.split(" ")[1];
     jwt.verify(accessToken, process.env.JWT_ACCESS_KEY, (err, user) => {
       if (err) {
-        res.status(403).json("Token is not valid!");
+        if (err.name === 'TokenExpiredError') {
+          return res.status(401).json({
+            message: "Token đã hết hạn",
+            code: "TOKEN_EXPIRED"
+          });
+        }
+        return res.status(403).json({
+          message: "Token không hợp lệ",
+          code: "INVALID_TOKEN"
+        });
       }
       req.user = user;
       next();
     });
   } else {
-    res.status(401).json("You're not authenticated");
+    return res.status(401).json({
+      message: "Không tìm thấy token xác thực",
+      code: "NO_TOKEN"
+    });
   }
 };
 
 const verifyTokenAndUserAuthorization = (req, res, next) => {
   verifyToken(req, res, () => {
-    if (req.user.id === req.params.id|| req.user.isAdmin) {
+    if (req.user.id === req.params.id || req.user.isAdmin || req.user.role === 'admin') {
       next();
     } else {
-      res.status(403).json("You're not allowed to do that!");
+      return res.status(403).json({
+        message: "Bạn không có quyền thực hiện hành động này",
+        code: "INSUFFICIENT_PERMISSIONS"
+      });
     }
   });
 };
 
 const verifyTokenAndAdmin = (req, res, next) => {
   verifyToken(req, res, () => {
-    if (req.user.isAdmin) {
+    if (req.user.isAdmin || req.user.role === 'admin') {
       next();
     } else {
-      res.status(403).json("You're not allowed to do that!");
+      return res.status(403).json({
+        message: "Bạn cần quyền admin để thực hiện hành động này",
+        code: "ADMIN_REQUIRED"
+      });
     }
   });
 };
