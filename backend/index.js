@@ -195,7 +195,7 @@ io.on('connection', async (socket) => {
 
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: process.env.CLIENT_URL || 'https://web-btn.vercel.app',
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
