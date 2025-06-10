@@ -37,11 +37,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       key: '/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-    }] : []),
-    ...(user?.role === 'admin' ? [{
+    }] : []),    ...(user?.role === 'admin' ? [{
       key: '/statistics',
       icon: <PieChartOutlined />,
-      label: 'Thống kê',
+      label: 'Statistics',
     }] : []),
     {
       key: '/chat',

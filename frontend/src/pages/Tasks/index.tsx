@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { Option } from "antd/es/mentions";
 import { User } from '../../types';
 import { userAPI } from '../../services/api';
+import './Tasks.css';
 
 // Define status order for sorting
 const statusOrder = {
@@ -36,7 +37,6 @@ const TasksPage: React.FC = () => {
       message.error("Không thể tải danh sách người dùng.");
     }
   };
-
   const fetchTasks = async () => {
     try {
       if (!user?._id || !token) return;
@@ -53,6 +53,7 @@ const TasksPage: React.FC = () => {
           receivedAt: task.receivedAt ? new Date(task.receivedAt) : undefined
         }));
         setTasks(tasksWithDates);
+        console.log("Tasks refreshed:", tasksWithDates.length);
       }
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -64,7 +65,6 @@ const TasksPage: React.FC = () => {
     console.log("editingTask state changed:", editingTask);
     console.log("Modal should be open:", !!editingTask);
   }, [editingTask]);
-
   useEffect(() => {
     fetchTasks();
     // Chỉ fetch users khi user là admin
@@ -72,6 +72,12 @@ const TasksPage: React.FC = () => {
       fetchUsers();
     }
   }, [user, token]);
+
+  // Optimize the onTaskUpdated callback
+  const handleTaskUpdated = React.useCallback(async () => {
+    console.log("Task updated, refreshing...");
+    await fetchTasks();
+  }, [fetchTasks]);
 
   const handleEdit = (task: Task) => {
     console.log("Editing task:", task);
@@ -111,7 +117,6 @@ const TasksPage: React.FC = () => {
       });
     }
   };
-
   const handleUpdateTask = async () => {
     try {
       if (!editingTask) return;
@@ -123,11 +128,15 @@ const TasksPage: React.FC = () => {
         assignedTo: values.assignedTo
       };
 
-      await TaskService.updateTask(editingTask._id, updatedTask, token);
-      message.success("Cập nhật thành công!");
-      setEditingTask(null);
-      fetchTasks();
+      const response = await TaskService.updateTask(editingTask._id, updatedTask, token);
+      if (response.success) {
+        message.success("Cập nhật thành công!");
+        setEditingTask(null);
+        // Refresh tasks data
+        await fetchTasks();
+      }
     } catch (error) {
+      console.error("Update error:", error);
       message.error("Cập nhật thất bại.");
     }
   };
@@ -141,41 +150,28 @@ const TasksPage: React.FC = () => {
 
   
 return (
-  <div style={{ padding: 32 }}>
-  <div style={{ marginBottom: 32 }}>
-    <Input
-      placeholder="Tìm kiếm theo tiêu đề..."
-      prefix={<SearchOutlined />}
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      style={{
-        maxWidth: 400,
-        borderRadius: 8,
-        padding: '6px 12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-        border: '1px solid #d9d9d9',
-      }}
-    />
-  </div>
-
-  <div
-    style={{
-      display: 'flex',
-      gap: 24,
-      flexWrap: 'wrap',
-      justifyContent: 'flex-start',
-    }}
-  >
-    {filteredAndSortedTasks.map((t) => (
-      <TaskDisplayPage
-        key={t._id}
-        task={t}
-        token={token}
-        onTaskUpdated={fetchTasks}
-        onEdit={handleEdit}
+  <div className="tasks-page-compact">
+    <div className="tasks-header-compact">
+      <Input
+        placeholder="Tìm kiếm theo tiêu đề..."
+        prefix={<SearchOutlined />}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="tasks-search-compact"
       />
-    ))}
-  </div>
+    </div>
+
+    <div className="tasks-grid-compact">
+      {filteredAndSortedTasks.map((t) => (
+        <TaskDisplayPage
+          key={t._id}
+          task={t}
+          token={token}
+          onTaskUpdated={handleTaskUpdated}
+          onEdit={handleEdit}
+        />
+      ))}
+    </div>
 
   {editingTask && (
   <div

@@ -1,0 +1,714 @@
+/* Enhanced Notification Dropdown Styles */
+.notification-bell {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  margin-top: 8px;
+}
+
+.notification-bell:hover {
+  background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%);
+  border-color: rgba(24, 144, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.notification-bell .anticon {
+  font-size: 18px;
+  color: #595959;
+  transition: color 0.3s ease;
+}
+
+.notification-bell:hover .anticon {
+  color: #1890ff;
+}
+
+.notification-dropdown-overlay .ant-dropdown-menu {
+  padding: 0 !important;
+  width: 360px;
+  max-height: 480px;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff !important;
+}
+
+.notification-dropdown {
+  width: 100%;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff !important;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #ffffff !important;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 20px;
+}
+
+.notification-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  margin-right: 16px;
+}
+
+.notification-header h4::before {
+  display: none;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.notification-actions .ant-btn-link {
+  padding: 4px 8px;
+  height: auto;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+  border: 1px solid transparent;
+}
+
+.notification-actions .ant-btn-link:hover {
+  background: rgba(24, 144, 255, 0.15);
+  border-color: rgba(24, 144, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+}
+
+.notification-list {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  background: #ffffff !important;
+}
+
+.notification-list .ant-list-item {
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  position: relative;
+  margin: 0;
+  background: #ffffff !important;
+}
+
+.notification-list .ant-list-item:hover {
+  background: #fafafa !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+}
+
+.notification-list .ant-list-item:active {
+  transform: translateX(1px);
+  background: #f0f0f0;
+  box-shadow: inset 2px 0 0 #1890ff;
+}
+
+
+
+.notification-item.unread {
+  background: #ffffff !important;
+  position: relative;
+}
+
+.notification-item.unread:hover {
+  background: #fafafa !important;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+}
+
+.notification-item.unread::after {
+  display: none;
+}
+
+.notification-item.read {
+  opacity: 0.7;
+  background: #ffffff !important;
+}
+
+.notification-item.read:hover {
+  background: #fafafa !important;
+}
+
+.notification-item.read .notification-text {
+  color: #8c8c8c;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 8px rgba(82, 196, 26, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 16px rgba(82, 196, 26, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 8px rgba(82, 196, 26, 0.4);
+  }
+}
+
+.notification-list .ant-list-item-meta {
+  margin-bottom: 0;
+  align-items: flex-start;
+}
+
+.notification-list .ant-list-item-meta-avatar {
+  margin-right: 12px;
+  margin-top: 2px;
+}
+
+.notification-list .ant-list-item-meta-avatar .anticon {
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.notification-list .ant-list-item-meta-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.notification-text {
+  line-height: 1.5;
+  word-wrap: break-word;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #262626 !important;
+  font-weight: 500;
+  overflow-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
+}
+
+.notification-item.unread .notification-text {
+  color: #1890ff !important;
+  font-weight: 600;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notification-time::before {
+  display: none;
+}
+
+.unread-dot {
+  display: none;
+}
+
+/* Enhanced scrollbar styling */
+.notification-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+/* Enhanced empty state */
+.notification-dropdown .ant-empty {
+  margin: 40px 0;
+  padding: 20px;
+}
+
+.notification-dropdown .ant-empty-description {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.notification-dropdown .ant-empty-image {
+  opacity: 0.6;
+}
+
+/* Enhanced badge styling */
+.notification-bell .ant-badge-count {
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-weight: 600;
+  background: #ff4d4f;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(255, 77, 79, 0.3);
+  animation: badge-bounce 0.5s ease-out;
+}
+
+@keyframes badge-bounce {
+  0% {
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Icon color variations for different notification types */
+.notification-icon-assigned {
+  color: #1890ff !important;
+  background: rgba(24, 144, 255, 0.1) !important;
+}
+
+.notification-icon-completed {
+  color: #52c41a !important;
+  background: rgba(82, 196, 26, 0.1) !important;
+}
+
+.notification-icon-failed {
+  color: #ff4d4f !important;
+  background: rgba(255, 77, 79, 0.1) !important;
+}
+
+.notification-icon-overdue {
+  color: #faad14 !important;
+  background: rgba(250, 173, 20, 0.1) !important;
+}
+
+.notification-icon-received {
+  color: #13c2c2 !important;
+  background: rgba(19, 194, 194, 0.1) !important;
+}
+
+/* Advanced hover effects */
+.notification-list .ant-list-item:hover .notification-icon-assigned,
+.notification-list .ant-list-item:hover .notification-icon-received,
+.notification-list .ant-list-item:hover .notification-icon-completed,
+.notification-list .ant-list-item:hover .notification-icon-failed,
+.notification-list .ant-list-item:hover .notification-icon-overdue {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Notification type specific hover effects */
+.notification-list .ant-list-item:hover .notification-icon-assigned {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+.notification-list .ant-list-item:hover .notification-icon-completed,
+.notification-list .ant-list-item:hover .notification-icon-received {
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+}
+
+.notification-list .ant-list-item:hover .notification-icon-failed {
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+}
+
+.notification-list .ant-list-item:hover .notification-icon-overdue {
+  box-shadow: 0 4px 12px rgba(250, 173, 20, 0.3);
+}
+
+/* Loading shimmer effect for new notifications */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.notification-item.new-notification {
+  background: #f0f8ff !important;
+  animation: shimmer 1.5s ease-in-out;
+}
+
+/* Notification header improvements */
+.notification-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Smooth slide-in animation for dropdown */
+.notification-dropdown-overlay .ant-dropdown-menu {
+  animation: slideDown 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-origin: top;
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Enhanced button styling in header */
+.notification-actions .ant-btn-link {
+  background: rgba(24, 144, 255, 0.1);
+  border: 1px solid rgba(24, 144, 255, 0.2);
+}
+
+.notification-actions .ant-btn-link:hover {
+  background: rgba(24, 144, 255, 0.15);
+  border-color: rgba(24, 144, 255, 0.4);
+}
+
+/* Beautiful scroll indicator */
+.notification-list {
+  position: relative;
+}
+
+.notification-list::after {
+  display: none;
+}
+
+/* Enhanced responsive design */
+@media (max-width: 768px) {
+  .notification-dropdown-overlay .ant-dropdown-menu {
+    width: 300px;
+    max-height: 400px;
+  }
+  
+  .notification-header {
+    padding: 14px 16px;
+  }
+  
+  .notification-header h4 {
+    font-size: 15px;
+  }
+  
+  .notification-list .ant-list-item {
+    padding: 14px 16px;
+  }
+  
+  .notification-text {
+    font-size: 13px;
+  }
+  
+  .notification-actions .ant-btn-link {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-dropdown-overlay .ant-dropdown-menu {
+    width: 280px;
+    max-height: 350px;
+  }
+  
+  .notification-header {
+    padding: 12px 14px;
+  }
+  
+  .notification-header h4 {
+    font-size: 14px;
+  }
+  
+  .notification-list .ant-list-item {
+    padding: 12px 14px;
+  }
+  
+  .notification-text {
+    font-size: 12px;
+  }
+  
+  .notification-time {
+    font-size: 11px;
+  }
+  
+  .notification-bell .ant-badge-count {
+    font-size: 10px;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .notification-dropdown-overlay .ant-dropdown-menu {
+    background: #1f1f1f;
+    border-color: #434343;
+  }
+  
+  .notification-dropdown {
+    background: #1f1f1f;
+  }
+  
+  .notification-header {
+    background: linear-gradient(135deg, #262626 0%, #1f1f1f 100%);
+    border-bottom-color: #434343;
+  }
+  
+  .notification-header h4 {
+    color: #ffffff;
+  }
+  
+  .notification-list .ant-list-item {
+    background: #1f1f1f;
+    border-bottom-color: #434343;
+  }
+  
+  .notification-list .ant-list-item:hover {
+    background: linear-gradient(135deg, #262626 0%, #1a1a1a 100%);
+  }
+  
+  .notification-text {
+    color: #ffffff;
+  }
+  
+  .notification-time {
+    color: #8c8c8c;
+  }
+}
+
+/* Click feedback styles */
+.notification-list .ant-list-item:active {
+  transform: translateX(1px);
+  background: #f0f0f0;
+  box-shadow: inset 2px 0 0 #1890ff;
+}
+
+/* Clear all button with icon */
+.notification-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+  border: 1px solid transparent;
+}
+
+.notification-clear-btn:hover {
+  background: rgba(255, 77, 79, 0.15);
+  border-color: rgba(255, 77, 79, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.2);
+}
+
+.notification-clear-btn .anticon {
+  font-size: 12px;
+}
+
+/* Mark all read button */
+.notification-mark-read-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+  border: 1px solid transparent;
+}
+
+.notification-mark-read-btn:hover {
+  background: rgba(82, 196, 26, 0.15);
+  border-color: rgba(82, 196, 26, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.2);
+}
+
+.notification-mark-read-btn .anticon {
+  font-size: 12px;
+}
+
+/* Force white background for all notification components */
+.notification-dropdown-overlay,
+.notification-dropdown-overlay .ant-dropdown,
+.notification-dropdown-overlay .ant-dropdown-menu,
+.notification-dropdown,
+.notification-header,
+.notification-list,
+.notification-list .ant-list,
+.notification-list .ant-list-item,
+.notification-item,
+.notification-item.unread,
+.notification-item.read {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+/* Ensure simple text colors without gradients */
+.notification-text,
+.notification-item .notification-text,
+.notification-item.unread .notification-text,
+.notification-item.read .notification-text {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+}
+
+.notification-item.read .notification-text {
+  color: #8c8c8c !important;
+}
+
+/* Hover states with light gray only */
+.notification-list .ant-list-item:hover,
+.notification-item:hover,
+.notification-item.unread:hover,
+.notification-item.read:hover {
+  background: #fafafa !important;
+  background-color: #fafafa !important;
+}
+
+/* Ensure header title has simple color */
+.notification-header h4 {
+  color: #262626 !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+}
+
+/* Remove all borders, dots, and visual indicators from notifications */
+.notification-item,
+.notification-item.unread,
+.notification-item.read,
+.notification-list .ant-list-item {
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+}
+
+.notification-item::before,
+.notification-item::after,
+.notification-item.unread::before,
+.notification-item.unread::after,
+.notification-item.read::before,
+.notification-item.read::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Remove all pseudo-elements that could create dots or indicators */
+.notification-list .ant-list-item::before,
+.notification-list .ant-list-item::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Ensure clean hover states without borders */
+.notification-list .ant-list-item:hover,
+.notification-item:hover,
+.notification-item.unread:hover,
+.notification-item.read:hover {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Prevent horizontal scrolling in notification text */
+.notification-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
+}
+
+.notification-list .ant-list-item-meta-content {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.notification-list .ant-list-item-meta-title,
+.notification-list .ant-list-item-meta-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hide any horizontal scrollbars completely */
+.notification-dropdown,
+.notification-list,
+.notification-list .ant-list,
+.notification-list .ant-list-item,
+.notification-text {
+  overflow-x: hidden !important;
+}
+
+/* Prevent any pseudo-elements from creating vertical lines */
+.notification-list::before,
+.notification-list::after,
+.notification-list:hover::before,
+.notification-list:hover::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Remove all borders between notifications */
+.notification-list .ant-list-item,
+.notification-item,
+.notification-item.unread,
+.notification-item.read {
+  border: none !important;
+  border-bottom: none !important;
+  border-top: none !important;
+}
+
+.notification-list .ant-list-item + .ant-list-item {
+  border-top: none !important;
+}

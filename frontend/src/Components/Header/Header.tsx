@@ -3,6 +3,7 @@ import { Layout, Avatar, Dropdown, Typography } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../services/api';
+import NotificationDropdown from './NotificationDropdown';
 import type { MenuProps } from 'antd';
 import './Header.css';
 
@@ -46,9 +47,9 @@ const Header: React.FC<HeaderProps> = () => {
 
   return (
     <AntHeader className="header">      
-      <div className="header-left"></div>      
-      <div className="header-right">
-        <Dropdown 
+      <div className="header-left"></div>        <div className="header-right">
+        <NotificationDropdown />
+        <Dropdown
           menu={{ items }} 
           placement="bottomRight" 
           arrow

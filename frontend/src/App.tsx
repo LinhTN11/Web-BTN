@@ -3,6 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import AppRoutes from './routes/AppRoutes';
 import 'antd/dist/reset.css';
 import './App.css';
@@ -35,9 +36,11 @@ const App: React.FC = () => {
     <ConfigProvider locale={viVN} theme={theme}>
       <Router>
         <AuthProvider>
-          <div className="App">
-            <AppRoutes />
-          </div>
+          <NotificationProvider>
+            <div className="App">
+              <AppRoutes />
+            </div>
+          </NotificationProvider>
         </AuthProvider>
       </Router>
     </ConfigProvider>

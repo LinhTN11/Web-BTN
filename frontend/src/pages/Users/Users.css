@@ -1,31 +1,30 @@
 .users-page {
-  padding: 10px;
+  padding: 12px;
   width: 100%;
-  height: calc(100vh - 110px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .users-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .users-header .ant-typography {
   margin-bottom: 0;
   color: #262626;
+  font-size: 18px;
 }
 
 .users-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -34,16 +33,14 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   border: none;
-  margin-bottom: 30px;
   background: #fff;
 }
 
 .users-card .ant-card-body {
-  padding: 0;
-  height: 100%;
+  padding: 12px;
 }
 
 .users-table {
@@ -101,12 +98,13 @@
 .users-table .ant-table-thead > tr > th {
   background-color: #fafafa;
   font-weight: 600;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
 }
 
 .users-table .ant-table-tbody > tr > td {
-  padding: 12px 16px;
+  padding: 6px 12px;
   white-space: nowrap;
   height: auto;
 }
@@ -116,31 +114,33 @@
 }
 
 .users-table .ant-table-pagination {
-  margin: 16px !important;
+  margin: 12px !important;
   padding: 0 !important;
   display: flex;
   align-items: center;
 }
 
 .users-table .ant-table-pagination .ant-pagination-total-text {
-  margin-left: 16px;
-  height: 32px;
-  line-height: 32px;
+  margin-left: 12px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 13px;
 }
 
 .user-avatar {
-  border: 2px solid #f0f0f0;
+  border: 1px solid #f0f0f0;
 }
 
 .users-table .ant-tag {
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 11px;
   font-weight: 500;
-  padding: 2px 8px;
+  padding: 1px 6px;
+  margin: 0;
 }
 
 .users-table .ant-btn {
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .users-table .ant-btn[title="Chỉnh sửa thông tin"] {
@@ -181,4 +181,47 @@
   .users-actions .ant-input-search {
     width: 100% !important;
   }
+}
+
+/* Compact Design Classes */
+.compact-title {
+  font-size: 18px !important;
+  margin-bottom: 0 !important;
+  font-weight: 600;
+}
+
+.compact-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+.compact-table .ant-table-tbody > tr {
+  height: 36px;
+}
+
+.compact-row:hover > td {
+  background-color: #f8f9fa !important;
+}
+
+.compact-text {
+  font-size: 13px;
+  line-height: 1.2;
+  color: #333;
+}
+
+.compact-tag {
+  font-size: 10px !important;
+  padding: 1px 5px !important;
+  margin: 0 !important;
+  line-height: 1.2;
+  border-radius: 2px !important;
+}
+
+.compact-button {
+  padding: 2px 4px !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.compact-button .anticon {
+  font-size: 12px;
 }

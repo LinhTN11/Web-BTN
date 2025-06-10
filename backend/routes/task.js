@@ -117,4 +117,118 @@ router.patch('/:id', checkTaskUpdateAccess, taskController.updateTask);
 // Delete a task (admin only, with access control)
 router.delete('/:id', checkTaskDeleteAccess, taskController.deleteTask);
 
+// Test notification endpoint
+router.post('/test-notification', middlewareController.verifyToken, (req, res) => {
+  try {
+    console.log('🧪 Test notification endpoint called');
+    console.log('User:', req.user);
+    console.log('Request body:', req.body);
+
+    const { targetUserId, message } = req.body;
+    const userId = targetUserId || req.user.id;
+
+    if (global.io) {
+      const notification = {
+        id: Date.now().toString(),
+        type: 'task_assigned',
+        taskId: 'test-' + Date.now(),
+        taskTitle: 'Test Notification Task',
+        message: message || `Test notification sent to user ${userId}`,
+        timestamp: new Date(),
+        read: false,
+        assignedTo: userId
+      };
+
+      console.log('📤 Sending test notification:', notification);
+      console.log('🏠 Available socket rooms:', Object.keys(global.io.sockets.adapter.rooms || {}));
+      console.log('👥 Connected sockets:', Object.keys(global.io.sockets.sockets || {}));
+
+      // Send to specific user room
+      global.io.to(userId).emit('taskNotification', notification);
+      
+      // Also broadcast to all connected clients
+      global.io.emit('taskNotification', notification);
+      
+      console.log('✅ Test notification sent successfully');
+      
+      res.status(200).json({ 
+        success: true, 
+        message: 'Test notification sent',
+        notification,
+        rooms: Object.keys(global.io.sockets.adapter.rooms || {}),
+        sockets: Object.keys(global.io.sockets.sockets || {})
+      });
+    } else {
+      console.log('❌ global.io not available');
+      res.status(500).json({ 
+        success: false, 
+        message: 'Socket.IO not available' 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error in test notification:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
+// Test direct notification endpoint (bypass auth for testing)
+router.post('/test-direct-notification', (req, res) => {
+  try {
+    console.log('🧪 Direct test notification endpoint called (NO AUTH)');
+    console.log('Request body:', req.body);
+
+    const { targetUserId, message } = req.body;
+    const userId = targetUserId || '6837ef18f94933046b33c2fd'; // Use the connected user ID
+
+    if (global.io) {
+      const notification = {
+        id: Date.now().toString(),
+        type: 'task_assigned',
+        taskId: 'test-' + Date.now(),
+        taskTitle: 'Test Direct Notification Task',
+        message: message || `Direct test notification sent to user ${userId} at ${new Date().toLocaleTimeString()}`,
+        timestamp: new Date(),
+        read: false,
+        assignedTo: userId
+      };
+
+      console.log('📤 Sending direct test notification:', notification);
+      console.log('🏠 Available socket rooms:', Object.keys(global.io.sockets.adapter.rooms || {}));
+      console.log('👥 Connected sockets:', Object.keys(global.io.sockets.sockets || {}));
+
+      // Send to specific user room
+      global.io.to(userId).emit('taskNotification', notification);
+      
+      // Also broadcast to all connected clients
+      global.io.emit('taskNotification', notification);
+      
+      console.log('✅ Direct test notification sent successfully');
+      
+      res.status(200).json({ 
+        success: true, 
+        message: 'Direct test notification sent',
+        notification,
+        rooms: Object.keys(global.io.sockets.adapter.rooms || {}),
+        sockets: Object.keys(global.io.sockets.sockets || {}),
+        targetUserId: userId
+      });
+    } else {
+      console.log('❌ global.io not available');
+      res.status(500).json({ 
+        success: false, 
+        message: 'Socket.IO not available' 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error in direct test notification:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
 module.exports = router;
