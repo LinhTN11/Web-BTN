@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Statistic, Spin, message, Typography } from 'antd';
-import { Pie } from '@ant-design/charts';
+import { Pie } from '@ant-design/plots';
 import TaskService from '../../services/taskService';
 import { useAuth } from '../../contexts/AuthContext';
 import { Task } from '../../Components/Tasks/TaskDisplayPage';
