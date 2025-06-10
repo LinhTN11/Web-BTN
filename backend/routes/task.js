@@ -48,4 +48,7 @@ router.post('/', middlewareController.verifyAdmin, taskController.createTask);
 // Update a task
 router.patch('/:id', taskController.updateTask);
 
+// Delete a task (admin only)
+router.delete('/:id', middlewareController.verifyAdmin, taskController.deleteTask);
+
 module.exports = router; 

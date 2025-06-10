@@ -9,6 +9,8 @@ import Users from '../pages/Users/Users';
 import Settings from '../pages/Settings/Settings';
 import MessengerChatPage from '../Components/Chat/MessengerChatPage';
 import Tasks from '../pages/Tasks/index';
+import AdminCreateTaskPage from '../Components/Admin/AdminCreateTaskPage';
+import StatisticsPage from '../pages/Statistics';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -92,7 +94,17 @@ const AppRoutes: React.FC = () => {
           </AdminRoute>
         } 
       />
-        <Route
+      <Route
+        path="/create-task"
+        element={(
+          <AdminRoute>
+            <MainLayout>
+              <AdminCreateTaskPage />
+            </MainLayout>
+          </AdminRoute>
+        )}
+      />
+      <Route
         path="/users" 
         element={
           <AdminRoute>
@@ -101,6 +113,16 @@ const AppRoutes: React.FC = () => {
             </MainLayout>
           </AdminRoute>
         } 
+      />
+      <Route
+        path="/statistics"
+        element={(
+          <AdminRoute>
+            <MainLayout>
+              <StatisticsPage />
+            </MainLayout>
+          </AdminRoute>
+        )}
       />
       
       <Route 
