@@ -168,9 +168,9 @@ const taskController = {
         }
       }
 
-      // Validate status if being updated
+      // Validate status if being updated - FIX: Updated valid statuses
       if (updateData.status) {
-        const validStatuses = ['pending', 'in-progress', 'completed', 'done', 'cancelled'];
+        const validStatuses = ['in_progress','done','failed', 'todo', 'overdue'];
         if (!validStatuses.includes(updateData.status)) {
           return res.status(400).json({
             success: false,

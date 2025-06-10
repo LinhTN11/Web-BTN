@@ -28,7 +28,7 @@ const TasksPage: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      if (!token) return;
+      if (!token || user?.role !== 'admin') return; // Chỉ fetch users khi là admin
       const response = await userAPI.getAllUsers();
       setUsers(response);
     } catch (error) {
@@ -67,7 +67,10 @@ const TasksPage: React.FC = () => {
 
   useEffect(() => {
     fetchTasks();
-    fetchUsers();
+    // Chỉ fetch users khi user là admin
+    if (user?.role === 'admin') {
+      fetchUsers();
+    }
   }, [user, token]);
 
   const handleEdit = (task: Task) => {
@@ -174,9 +177,6 @@ return (
     ))}
   </div>
 
-
-
-    
   {editingTask && (
   <div
     style={{
@@ -187,8 +187,6 @@ return (
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: '600px',
-      
     }}
   >
     <div
@@ -213,26 +211,31 @@ return (
         <Form.Item name="description" label="Mô tả" style={{ marginBottom: '16px' }}>
           <Input.TextArea rows={3} />
         </Form.Item>
-        <Form.Item
-          name="assignedTo"
-          label="Giao Cho"
-          rules={[{ required: true, message: 'Vui lòng chọn người dùng để giao việc!' }]}
-        >
-          <Select
-            showSearch
-            placeholder="Chọn một người dùng"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
-            }
+        
+        {/* Chỉ hiển thị trường "Giao Cho" khi user là admin */}
+        {user?.role === 'admin' && (
+          <Form.Item
+            name="assignedTo"
+            label="Giao Cho"
+            rules={[{ required: true, message: 'Vui lòng chọn người dùng để giao việc!' }]}
           >
-            {users.map(user => (
-              <Option key={user._id} value={user._id}>
-                {user.username} ({user.email})
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <Select
+              showSearch
+              placeholder="Chọn một người dùng"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+              }
+            >
+              {users.map(user => (
+                <Option key={user._id} value={user._id}>
+                  {user.username} ({user.email})
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        )}
+        
         <Form.Item name="deadline" label="Hạn chót" style={{ marginBottom: '0' }}>
           <DatePicker style={{ width: "100%" }} />
         </Form.Item>
