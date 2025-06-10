@@ -9,7 +9,9 @@ import {
   MenuUnfoldOutlined,
   BookOutlined,
   PlusCircleOutlined,
-  PieChartOutlined
+  PieChartOutlined,
+  ClockCircleOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -69,6 +71,16 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <SettingOutlined />,
       label: 'Settings',
     },
+    {
+      key: '/timekeeping',
+      icon: <ClockCircleOutlined />,
+      label: 'Chấm công',
+    },
+    ...(user?.role === 'admin' ? [{
+      key: '/admin/timekeeping-history',
+      icon: <HistoryOutlined />,
+      label: 'Lịch sử Chấm công',
+    }] : []),
   ];
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);

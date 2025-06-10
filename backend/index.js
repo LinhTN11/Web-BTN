@@ -11,6 +11,7 @@ const authRoute = require('./routes/auth');
 const userRoute = require('./routes/user');
 const chatRoute = require('./routes/chat');
 const taskRoute = require('./routes/task');
+const timekeepingRoute = require('./routes/timekeeping');
 const User = require('./models/User');
 const Message = require('./models/Message');
 
@@ -257,6 +258,7 @@ app.use('/v1/auth', authRoute);
 app.use('/v1/user', userRoute);
 app.use('/v1/chat', chatRoute);
 app.use('/v1/tasks', taskRoute);
+app.use('/v1/timekeeping', timekeepingRoute);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

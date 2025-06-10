@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
+const timekeepingRoutes = require('./routes/timekeeping');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
@@ -34,6 +35,7 @@ mongoose.connect('mongodb://localhost:27017/taskmanagement', {
 // Routes
 app.use('/v1/tasks', authMiddleware, taskRoutes);
 app.use('/v1/users', userRoutes);
+app.use('/v1/timekeeping', timekeepingRoutes); // Added timekeeping routes
 
 // Error handling middleware
 app.use((err, req, res, next) => {
