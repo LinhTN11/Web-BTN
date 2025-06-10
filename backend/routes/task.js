@@ -4,20 +4,20 @@ const middlewareController = require('../controllers/middlewareController');
 
 // Middleware to check if user can access tasks
 const checkTaskAccess = (req, res, next) => {
-  console.log('🔒 Checking task access...');
-  console.log('👤 User:', req.user);
-  console.log('📝 Query:', req.query);
+  console.log(' Checking task access...');
+  console.log(' User:', req.user);
+  console.log(' Query:', req.query);
 
   // Admin can access all tasks
   if (req.user.role === 'admin' && !req.query.assignedTo) {
-    console.log('👑 Admin accessing all tasks');
+    console.log(' Admin accessing all tasks');
     return next();
   }
 
   // For specific user tasks, ensure assignedTo matches current user
   const targetUserId = req.query.assignedTo || req.user.id;
   if (req.user.role !== 'admin' && targetUserId !== req.user.id) {
-    console.log('⛔ Access denied: User can only access their own tasks');
+    console.log(' Access denied: User can only access their own tasks');
     return res.status(403).json({ 
       success: false, 
       message: 'You can only access your own tasks' 
@@ -29,7 +29,7 @@ const checkTaskAccess = (req, res, next) => {
     req.query.assignedTo = req.user.id;
   }
 
-  console.log('✅ Access granted');
+  console.log(' Access granted');
   next();
 };
 

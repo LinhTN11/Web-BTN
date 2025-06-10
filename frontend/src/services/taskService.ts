@@ -16,9 +16,9 @@ const getAuthHeader = (token: string | null) => {
 const TaskService = {
     getTasksByUserId: async (userId: string, token: string | null) => {
       try {
-        console.log('📤 Sending request to get tasks');
-        console.log('👤 User ID:', userId);
-        console.log('🔑 Token:', token ? 'Present' : 'Missing');
+        console.log(' Sending request to get tasks');
+        console.log(' User ID:', userId);
+        console.log(' Token:', token ? 'Present' : 'Missing');
 
         const response = await axios.get<ApiResponse<Task[]>>(
           `${BASE_URL}/tasks`, {
@@ -27,7 +27,7 @@ const TaskService = {
           }
         );
 
-        console.log('📥 Response:', response.data);
+        console.log(' Response:', response.data);
 
         if (!response.data.success) {
           throw new Error(response.data.message || 'Failed to fetch tasks');
@@ -35,7 +35,7 @@ const TaskService = {
 
         return response.data;
       } catch (error: any) {
-        console.error('❌ Error fetching tasks:', error);
+        console.error(' Error fetching tasks:', error);
         throw new Error(error.response?.data?.message || 'Error fetching tasks');
       }
     },
@@ -56,8 +56,8 @@ const TaskService = {
   
     updateTask: async (taskId: string, updates: Partial<Task>, token: string | null) => {
       try {
-        console.log('📤 Updating task:', taskId);
-        console.log('📦 Updates:', updates);
+        console.log(' Updating task:', taskId);
+        console.log(' Updates:', updates);
         
         const response = await axios.patch<ApiResponse<Task>>(
           `${BASE_URL}/tasks/${taskId}`, 
@@ -68,14 +68,14 @@ const TaskService = {
         console.log('📥 Update response:', response.data);
         return response.data;
       } catch (error: any) {
-        console.error('❌ Error updating task:', error);
+        console.error(' Error updating task:', error);
         throw new Error(error.response?.data?.message || 'Error updating task');
       }
     },
   
     getAllTasksForAdmin: async (token: string | null) => {
       try {
-        console.log('📤 Admin: Sending request to get all tasks');
+        console.log(' Admin: Sending request to get all tasks');
         
         const response = await axios.get<ApiResponse<Task[]>>(
           `${BASE_URL}/tasks/all`, {
@@ -83,7 +83,7 @@ const TaskService = {
           }
         );
 
-        console.log('📥 Admin: Response:', response.data);
+        console.log(' Admin: Response:', response.data);
 
         if (!response.data.success) {
           throw new Error(response.data.message || 'Failed to fetch tasks');
@@ -91,7 +91,7 @@ const TaskService = {
 
         return response.data;
       } catch (error: any) {
-        console.error('❌ Error fetching all tasks:', error);
+        console.error(' Error fetching all tasks:', error);
         throw new Error(error.response?.data?.message || 'Error fetching all tasks');
       }
     },
