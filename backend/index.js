@@ -77,7 +77,7 @@ process.on('SIGINT', async () => {
 // Initialize Socket.IO and make it globally available
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://192.168.100.81:3000"],
+    origin: true,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -238,7 +238,7 @@ io.on('connection', async (socket) => {
 
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: true,
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
