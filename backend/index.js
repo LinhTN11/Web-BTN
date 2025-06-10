@@ -75,7 +75,7 @@ process.on('SIGINT', async () => {
 // Initialize Socket.IO and make it globally available
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://192.168.100.81:3000"],
+    origin: ["http://localhost:3000", "http://192.168.100.81:3000", "https://web-btn.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true
   }
