@@ -11,6 +11,8 @@ import MessengerChatPage from '../Components/Chat/MessengerChatPage';
 import Tasks from '../pages/Tasks/index';
 import AdminCreateTaskPage from '../Components/Admin/AdminCreateTaskPage';
 import StatisticsPage from '../pages/Statistics';
+import TimekeepingPage from '../pages/Timekeeping/TimekeepingPage';
+import TimekeepingHistoryPage from '../pages/Timekeeping/TimekeepingHistoryPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -124,6 +126,16 @@ const AppRoutes: React.FC = () => {
           </AdminRoute>
         )}
       />
+      <Route
+        path="/admin/timekeeping-history"
+        element={(
+          <AdminRoute>
+            <MainLayout>
+              <TimekeepingHistoryPage />
+            </MainLayout>
+          </AdminRoute>
+        )}
+      />
       
       <Route 
         path="/chat" 
@@ -161,6 +173,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <MainLayout>
               <Tasks />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/timekeeping" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <TimekeepingPage />
             </MainLayout>
           </ProtectedRoute>
         } 
