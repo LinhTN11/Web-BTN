@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: web-btn-backend
+    env: node
+    repo: https://github.com/your-username/your-repo-name.git
+    branch: main
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm run start:prod
+    plan: free
+    region: oregon
+    rootDir: backend
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8000
+      - key: MONGODB_URL
+        sync: false
+      - key: JWT_ACCESS_KEY
+        sync: false
+      - key: JWT_REFRESH_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

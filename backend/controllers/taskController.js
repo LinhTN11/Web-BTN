@@ -1,6 +1,18 @@
 const Task = require('../models/Task');
 const mongoose = require('mongoose');
 
+// Helper function to convert status to Vietnamese text
+const getStatusText = (status) => {
+  const statusMap = {
+    'todo': 'Chưa bắt đầu',
+    'in_progress': 'Đang thực hiện',
+    'done': 'Hoàn thành',
+    'failed': 'Thất bại',
+    'overdue': 'Quá hạn'
+  };
+  return statusMap[status] || status;
+};
+
 const taskController = {
   // Get all tasks
   getAllTasks: async (req, res) => {
@@ -41,7 +53,6 @@ const taskController = {
       res.status(500).json({ success: false, message: error.message });
     }
   },
-
   // Create a new task
   createTask: async (req, res) => {
     try {
@@ -63,7 +74,50 @@ const taskController = {
       const populatedTask = await Task.findById(savedTask._id)
         .populate('assignedTo', 'username');
 
-      console.log(' Task created:', populatedTask);
+      console.log(' Task created:', populatedTask);      // Send notifications via socket
+      if (global.io) {
+        // Notification for assigned user
+        if (savedTask.assignedTo) {
+          const userNotification = {
+            id: Date.now().toString(),
+            type: 'task_assigned',
+            taskId: savedTask._id.toString(),
+            taskTitle: savedTask.title,
+            message: `Bạn đã được giao nhiệm vụ: ${savedTask.title}`,
+            timestamp: new Date(),
+            read: false,
+            assignedTo: savedTask.assignedTo.toString()
+          };          console.log(' Sending notification to assigned user:', savedTask.assignedTo.toString());
+          console.log(' User notification data:', userNotification);
+          
+          // Send to assigned user only
+          global.io.to(savedTask.assignedTo.toString()).emit('taskNotification', userNotification);
+        }
+
+        // Notification for admin who created the task
+        const adminNotification = {
+          id: (Date.now() + 1).toString(), // Different ID
+          type: 'task_created',
+          taskId: savedTask._id.toString(),
+          taskTitle: savedTask.title,
+          message: `Bạn đã tạo nhiệm vụ: ${savedTask.title}`,
+          timestamp: new Date(),
+          read: false,
+          assignedTo: req.user.id // Send to the admin who created it
+        };        console.log(' Sending notification to admin:', req.user.id);
+        console.log(' Admin user info:', { id: req.user.id, role: req.user.role, type: typeof req.user.id });
+        console.log(' Admin notification data:', adminNotification);
+        console.log(' Available socket rooms:', Object.keys(global.io.sockets.adapter.rooms || {}));
+        console.log(' Target admin room exists:', global.io.sockets.adapter.rooms.has(req.user.id));
+        console.log(' Admin room size:', global.io.sockets.adapter.rooms.get(req.user.id)?.size || 0);
+        
+        // Send to admin only
+        global.io.to(req.user.id).emit('taskNotification', adminNotification);
+        
+        console.log(' Notifications sent successfully');
+      } else {
+        console.log(' global.io not available');
+      }
       
       res.status(201).json({ success: true, data: populatedTask });
     } catch (error) {
@@ -200,13 +254,55 @@ const taskController = {
           success: false, 
           message: 'Failed to update task' 
         });
-      }
-
-      console.log(' Task updated successfully:', {
+      }      console.log(' Task updated successfully:', {
         id: updatedTask._id,
         status: updatedTask.status,
         updatedAt: updatedTask.updatedAt
       });
+
+      // Send notifications for task updates
+      if (global.io && updateData.status) {
+        // Notification to admin about task status change
+        if (existingTask.assignedTo.toString() !== req.user.id) {
+          // If user is not admin (i.e., regular user updating their task)
+          const adminNotification = {
+            id: Date.now().toString(),
+            type: 'task_status_updated',
+            taskId: updatedTask._id.toString(),
+            taskTitle: updatedTask.title,
+            message: `Nhiệm vụ "${updatedTask.title}" đã được cập nhật trạng thái: ${getStatusText(updatedTask.status)}`,
+            timestamp: new Date(),
+            read: false,
+            assignedTo: 'admin001' // Send to admin
+          };
+
+          console.log(' Sending status update notification to admin');
+          console.log(' Admin status notification data:', adminNotification);
+          
+          // Send to all admins (broadcast to admin room)
+          global.io.emit('taskNotification', adminNotification);
+        }
+
+        // Notification to user about their task status change (if admin updated it)
+        if (req.user.role === 'admin' && existingTask.assignedTo.toString() !== req.user.id) {
+          const userNotification = {
+            id: (Date.now() + 1).toString(),
+            type: 'task_status_updated',
+            taskId: updatedTask._id.toString(),
+            taskTitle: updatedTask.title,
+            message: `Nhiệm vụ "${updatedTask.title}" của bạn đã được cập nhật trạng thái: ${getStatusText(updatedTask.status)}`,
+            timestamp: new Date(),
+            read: false,
+            assignedTo: existingTask.assignedTo.toString()
+          };
+
+          console.log(' Sending status update notification to user:', existingTask.assignedTo.toString());
+          console.log(' User status notification data:', userNotification);
+          
+          global.io.to(existingTask.assignedTo.toString()).emit('taskNotification', userNotification);
+          global.io.emit('taskNotification', userNotification);
+        }
+      }
       
       res.status(200).json({ success: true, data: updatedTask });
     } catch (error) {

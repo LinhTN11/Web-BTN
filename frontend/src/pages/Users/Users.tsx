@@ -34,6 +34,7 @@ const Users: React.FC = () => {
   const [tempEmail, setTempEmail] = useState('');
   const { user: currentUser, getUsers, refreshUsers, updateUserInList, removeUserFromList } = useAuth();
   const users = getUsers();
+
   useEffect(() => {
     const initUsers = async () => {
       try {
@@ -47,50 +48,45 @@ const Users: React.FC = () => {
     };
 
     initUsers();
-  }, []); // Remove refreshUsers from dependencies
+  }, []);
+
   const handleDeleteUser = async (userId: string) => {
     try {
       await userAPI.deleteUser(userId);
-      // Remove user from local state immediately
       removeUserFromList(userId);
-      message.success('Đã xóa người dùng thành công');
+      message.success('Xóa người dùng thành công');
     } catch (error) {
       message.error('Không thể xóa người dùng');
     }
   };
 
   const handleEmailClick = (user: User) => {
-    if (currentUser?.role === 'admin') {
-      setEditingEmailUserId(user._id);
-      setTempEmail(user.email);
-    }
-  };  const handleEmailSave = async (userId: string) => {
+    if (currentUser?.role !== 'admin') return;
+    setEditingEmailUserId(user._id);
+    setTempEmail(user.email);
+  };
+
+  const handleEmailSave = async (userId: string) => {
     if (!tempEmail.trim()) {
       message.error('Email không được để trống');
-      return false; // Return false to indicate validation failed
+      return false;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(tempEmail)) {
+    if (!/\S+@\S+\.\S+/.test(tempEmail)) {
       message.error('Email không hợp lệ');
-      return false; // Return false to indicate validation failed
-    }    try {
-      console.log('Updating user email:', { userId, email: tempEmail });
+      return false;
+    }
+
+    try {
       const updatedUser = await userAPI.updateUser(userId, { email: tempEmail });
-      console.log('User updated successfully:', updatedUser);
-      
-      // Update the user in the local state immediately
       updateUserInList(userId, { email: tempEmail });
-      
-      message.success('Cập nhật email thành công');
       setEditingEmailUserId(null);
       setTempEmail('');
-      return true; // Return true to indicate success
-    } catch (error: any) {
-      console.error('Error updating email:', error);
-      const errorMessage = error.response?.data?.message || 'Không thể cập nhật email';
-      message.error(errorMessage);
-      return false; // Return false to indicate error occurred
+      message.success('Cập nhật email thành công');
+      return true;
+    } catch (error) {
+      message.error('Không thể cập nhật email');
+      return false;
     }
   };
 
@@ -98,6 +94,7 @@ const Users: React.FC = () => {
     setEditingEmailUserId(null);
     setTempEmail('');
   };
+
   const handleEmailKeyPress = async (e: React.KeyboardEvent, userId: string) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -109,12 +106,10 @@ const Users: React.FC = () => {
   };
 
   const handleEmailBlur = async (userId: string) => {
-    // Only save on blur if the user has made changes and the email is different from original
     const originalUser = users.find(u => u._id === userId);
     if (originalUser && tempEmail !== originalUser.email && tempEmail.trim()) {
       const success = await handleEmailSave(userId);
       if (!success) {
-        // If save failed, keep the input focused
         setTimeout(() => {
           const input = document.querySelector(`input[data-user-id="${userId}"]`) as HTMLInputElement;
           if (input) {
@@ -123,7 +118,6 @@ const Users: React.FC = () => {
         }, 100);
       }
     } else {
-      // If no changes or empty, just cancel
       handleEmailCancel();
     }
   };
@@ -138,10 +132,10 @@ const Users: React.FC = () => {
       title: 'Avatar',
       dataIndex: 'avatar',
       key: 'avatar',
-      width: 80,
+      width: 50,
       render: (avatar: string) => (
         <Avatar 
-          size="large" 
+          size="small" 
           icon={<UserOutlined />} 
           src={avatar}
           className="user-avatar"
@@ -152,13 +146,19 @@ const Users: React.FC = () => {
       title: 'Tên đăng nhập',
       dataIndex: 'username',
       key: 'username',
+      width: 100,
       sorter: (a, b) => a.username.localeCompare(b.username),
+      render: (username: string) => (
+        <span className="compact-text">{username}</span>
+      ),
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      sorter: (a, b) => a.email.localeCompare(b.email),      render: (email: string, record: User) => {
+      width: 160,
+      sorter: (a, b) => a.email.localeCompare(b.email),
+      render: (email: string, record: User) => {
         if (editingEmailUserId === record._id && currentUser?.role === 'admin') {
           return (
             <Input
@@ -167,6 +167,7 @@ const Users: React.FC = () => {
               onBlur={() => handleEmailBlur(record._id)}
               onKeyDown={(e) => handleEmailKeyPress(e, record._id)}
               data-user-id={record._id}
+              size="small"
               style={{ 
                 width: '100%', 
                 border: '1px solid #1890ff',
@@ -184,12 +185,12 @@ const Users: React.FC = () => {
             onClick={() => handleEmailClick(record)}
             style={{
               cursor: currentUser?.role === 'admin' ? 'pointer' : 'default',
-              padding: '4px 8px',
-              borderRadius: '4px',
+              padding: '2px 4px',
+              borderRadius: '2px',
               transition: 'background-color 0.2s',
               display: 'block'
             }}
-            className={currentUser?.role === 'admin' ? 'editable-email' : ''}
+            className={`compact-text ${currentUser?.role === 'admin' ? 'editable-email' : ''}`}
             title={currentUser?.role === 'admin' ? 'Click để chỉnh sửa email • Enter để lưu • Esc để hủy' : ''}
           >
             {email}
@@ -201,11 +202,12 @@ const Users: React.FC = () => {
       title: 'Trạng thái',
       dataIndex: 'isOnline',
       key: 'isOnline',
-      width: 120,
+      width: 70,
       render: (isOnline: boolean) => (
         <Tag 
           icon={isOnline ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
           color={isOnline ? 'success' : 'default'}
+          className="compact-tag"
         >
           {isOnline ? 'Online' : 'Offline'}
         </Tag>
@@ -220,9 +222,12 @@ const Users: React.FC = () => {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      width: 100,
+      width: 60,
       render: (role: string) => (
-        <Tag color={role === 'admin' ? 'red' : 'blue'}>
+        <Tag 
+          color={role === 'admin' ? 'red' : 'blue'}
+          className="compact-tag"
+        >
           {role === 'admin' ? 'Admin' : 'User'}
         </Tag>
       ),
@@ -233,13 +238,20 @@ const Users: React.FC = () => {
       onFilter: (value, record) => record.role === value,
     },
     {
-      title: 'Hoạt động cuối',
+      title: 'Hoạt động',
       dataIndex: 'lastActive',
       key: 'lastActive',
-      width: 150,
+      width: 80,
       render: (lastActive: string) => {
-        if (!lastActive) return '-';
-        return new Date(lastActive).toLocaleString('vi-VN');
+        if (!lastActive) return <span className="compact-text">-</span>;
+        return (
+          <span className="compact-text">
+            {new Date(lastActive).toLocaleDateString('vi-VN', {
+              day: '2-digit',
+              month: '2-digit'
+            })}
+          </span>
+        );
       },
       sorter: (a, b) => {
         if (!a.lastActive) return 1;
@@ -250,9 +262,9 @@ const Users: React.FC = () => {
     {
       title: 'Hành động',
       key: 'actions',
-      width: 120,
+      width: 60,
       render: (_, record: User) => (
-        <Space>
+        <Space size="small">
           {currentUser?.role === 'admin' && record._id !== currentUser._id && (
             <Popconfirm
               title="Xóa người dùng"
@@ -268,6 +280,7 @@ const Users: React.FC = () => {
                 icon={<DeleteOutlined />}
                 size="small"
                 title="Xóa người dùng"
+                className="compact-button"
               />
             </Popconfirm>
           )}
@@ -279,37 +292,39 @@ const Users: React.FC = () => {
   return (
     <div className="users-page">
       <div className="users-header">
-        <Title level={2}>Quản lý người dùng</Title>
+        <Title level={3} className="compact-title">Quản lý người dùng</Title>
         <div className="users-actions">
           <Search
             placeholder="Tìm kiếm theo tên hoặc email"
             allowClear
             enterButton={<SearchOutlined />}
-            size="large"
+            size="small"
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 300 }}
+            style={{ width: 220 }}
           />
         </div>
       </div>
 
-      <Card className="users-card">
+      <Card className="users-card compact-card">
         <Table
           columns={columns}
           dataSource={filteredUsers}
           rowKey="_id"
           loading={loading}
+          size="small"
           pagination={{
-            pageSize: 10,
-            showSizeChanger: false,
+            pageSize: 20,
+            showSizeChanger: true,
             showQuickJumper: true,
             position: ['bottomLeft'],
             showTotal: (total, range) => 
               `${range[0]}-${range[1]} của ${total} người dùng`,
-            size: "default"
+            size: "small"
           }}
-          className="users-table"
-          rowClassName={() => 'table-row'}
+          className="users-table compact-table"
+          rowClassName={() => 'table-row compact-row'}
           bordered={false}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
     </div>

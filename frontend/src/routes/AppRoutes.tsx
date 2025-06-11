@@ -168,8 +168,7 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         } 
       />
-        <Route 
-        path="/tasks" 
+        <Route        path="/tasks" 
         element={
           <ProtectedRoute>
             <MainLayout>

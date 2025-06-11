@@ -39,11 +39,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       key: '/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-    }] : []),
-    ...(user?.role === 'admin' ? [{
+    }] : []),    ...(user?.role === 'admin' ? [{
       key: '/statistics',
       icon: <PieChartOutlined />,
-      label: 'Thống kê',
+      label: 'Statistics',
     }] : []),
     {
       key: '/chat',
@@ -66,11 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <BookOutlined />,
       label: 'Tasks',
     },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-    },
+    
     {
       key: '/timekeeping',
       icon: <ClockCircleOutlined />,
@@ -81,7 +76,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <HistoryOutlined />,
       label: 'Lịch sử Chấm công',
     }] : []),
+    {
+      key: '/settings',
+      icon: <SettingOutlined />,
+      label: 'Settings',
+    },
   ];
+  
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
     // Close mobile menu after navigation

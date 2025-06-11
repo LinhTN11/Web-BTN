@@ -1,8 +1,7 @@
 {
   "name": "jwt-frontend",
   "version": "0.1.0",
-  "private": true,
-  "dependencies": {
+  "private": true,  "dependencies": {
     "@ant-design/charts": "^2.3.0",
     "@ant-design/icons": "^5.2.6",
     "@ant-design/plots": "^2.4.0",
@@ -23,15 +22,21 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
     "react-scripts": "5.0.1",
+    "recharts": "^2.15.3",
+    "serve": "^14.2.1",
     "socket.io-client": "^4.8.1",
     "typescript": "^4.7.4",
     "web-vitals": "^2.1.4"
-  },
-  "scripts": {
+  },  "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:vercel": "GENERATE_SOURCEMAP=false react-scripts build",
+    "build:prod": "REACT_APP_ENVIRONMENT=production react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "serve": "serve -s build -l 3000",
+    "preview": "npm run build && npm run serve",
+    "analyze": "npm run build && npx source-map-explorer 'build/static/js/*.js'"
   },
   "eslintConfig": {
     "extends": [

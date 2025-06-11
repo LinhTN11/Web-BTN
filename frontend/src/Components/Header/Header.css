@@ -21,9 +21,11 @@
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
   height: 100%;
   position: relative;
   z-index: 121; /* Ensure dropdown container is above everything */
+  margin-top: -8px; /* Adjusted for better alignment */
 }
 
 .user-info {
@@ -34,7 +36,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0;
   box-sizing: border-box;
   border: none;
   background: transparent;

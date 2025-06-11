@@ -5,14 +5,17 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "index.js",
-  "scripts": {
+  "main": "index.js",  "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "start:prod": "NODE_ENV=production node index.js",
     "start:8000": "set PORT=8000 && nodemon index.js",
     "start:8001": "set PORT=8001 && nodemon index.js",
     "start:8080": "set PORT=8080 && nodemon index.js",
-    "start:3001": "set PORT=3001 && nodemon index.js"
+    "start:3001": "set PORT=3001 && nodemon index.js",
+    "build": "echo 'Backend build completed'",
+    "test": "echo 'No tests specified'",
+    "deploy": "NODE_ENV=production npm start"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
