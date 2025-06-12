@@ -4,6 +4,7 @@ import { FileTextOutlined, SendOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { userAPI } from '../../services/api';
 import TaskService from '../../services/taskService';
+import { notificationService } from '../../services/notificationService';
 import { User } from '../../types'; // User import might need attention later
 import { CreateTaskInput } from '../Tasks/TaskDisplayPage';
 import dayjs from 'dayjs';
@@ -46,12 +47,24 @@ const AdminCreateTaskPage: React.FC = () => {
       description: values.description,
       assignedTo: values.assignedTo,
       deadline: values.deadline.toISOString(),
-    };
-
-    try {
+    };    try {
       const response = await TaskService.createTask(taskData, token);
       if (response.success) {
         message.success('Tạo công việc thành công!');
+        
+        // Find the assigned user to get their username
+        const assignedUser = users.find(user => user._id === values.assignedTo);
+          // Send notification to the assigned user
+        if (assignedUser) {
+          notificationService.addNotification({
+            type: 'task_assigned',
+            taskId: response.data._id,
+            taskTitle: values.title,
+            message: `Task "${values.title}" đã được giao cho bạn`,
+            assignedTo: assignedUser.username
+          });
+        }
+        
         form.resetFields();
       } else {
         message.error(response.message || 'Tạo công việc thất bại.');

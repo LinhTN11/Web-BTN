@@ -95,3 +95,7 @@
 body > .ant-dropdown {
   z-index: 10000 !important;
 }
+
+.ant-dropdown-trigger user-info {
+  margin-top: -200px;
+}

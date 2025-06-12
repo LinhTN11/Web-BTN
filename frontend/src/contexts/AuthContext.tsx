@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
 import { userAPI, authAPI } from '../services/api';
+import { socketService } from '../services/socketService';
 
 interface AdminData {
   users: User[];
@@ -39,6 +40,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(newUser));
     }
   };
+  // Setup socket connection when authenticated
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      console.log('Setting up socket connection with token');
+      socketService.connect(token);
+    } else {
+      console.log('Disconnecting socket');
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, token]);
+
   // Setup automatic token refresh and heartbeat
   useEffect(() => {
     let refreshInterval: NodeJS.Timeout;
@@ -88,12 +100,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const savedUser = localStorage.getItem('user');
         const savedToken = localStorage.getItem('token');
-        
-        if (savedUser && savedToken) {
+          if (savedUser && savedToken) {
           const parsedUser = JSON.parse(savedUser);
           setUser(parsedUser);
           setToken(savedToken);
           setIsAuthenticated(true);
+
+          // Connect socket
+          socketService.connect(savedToken);
 
           // Refresh user data
           await refreshUserData();
@@ -136,7 +150,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     }
   };
-
   const login = async (response: any, accessToken: string) => {
     try {
       if (!response.user || !accessToken) {
@@ -152,6 +165,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(response.user));
       localStorage.setItem('token', accessToken);
 
+      // Connect socket
+      socketService.connect(accessToken);
+
       // If admin, preload data
       if (response.user.role === 'admin') {
         await preloadAdminData();
@@ -161,13 +177,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     }
   };
-
   const logout = () => {
     try {
       authAPI.logout();
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
+      // Disconnect socket
+      socketService.disconnect();
+      
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);

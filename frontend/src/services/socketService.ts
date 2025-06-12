@@ -1,17 +1,19 @@
 import { io, Socket } from 'socket.io-client';
 import { Message, ChatUser } from './chatService';
+import { TaskNotification } from './notificationService';
 
 type MessageCallback = (message: Message) => void;
 type UserOnlineCallback = (userId: string) => void;
 type UserOfflineCallback = (userId: string) => void;
 type TypingCallback = (data: { userId: string, isTyping: boolean }) => void;
+type NotificationCallback = (notification: TaskNotification) => void;
 
 class SocketService {
-  private socket: Socket | null = null;
-  private messageCallbacks: MessageCallback[] = [];
+  private socket: Socket | null = null;  private messageCallbacks: MessageCallback[] = [];
   private userOnlineCallbacks: UserOnlineCallback[] = [];
   private userOfflineCallbacks: UserOfflineCallback[] = [];
   private typingCallbacks: TypingCallback[] = [];
+  private notificationCallbacks: NotificationCallback[] = [];
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private lastToken: string = '';  connect(token: string) {
     this.lastToken = token;
@@ -21,15 +23,19 @@ class SocketService {
       startsWithBearer: token?.startsWith('Bearer '),
       tokenPreview: token?.substring(0, 20) + '...'
     });
-    
-    if (!this.socket || this.socket.disconnected) {
-      this.socket = io(process.env.REACT_APP_API_URL || 'http://localhost:8000', {
+      if (!this.socket || this.socket.disconnected) {
+      const socketUrl = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      console.log('Connecting to socket URL:', socketUrl);
+      
+      this.socket = io(socketUrl, {
         auth: { token },
-        transports: ['websocket'], // Chỉ sử dụng websocket để giảm overhead
+        transports: ['websocket', 'polling'], // Support both for better compatibility
         reconnection: true,
-        reconnectionDelay: 2000, // Tăng delay lên 2 giây
-        reconnectionAttempts: 3, // Giảm xuống 3 attempts
-        timeout: 15000 // Tăng timeout lên 15 giây
+        reconnectionDelay: 2000,
+        reconnectionAttempts: 5, // Increase for production
+        timeout: 20000, // Increase timeout for production
+        forceNew: false,
+        upgrade: true
       });
       
       this.socket.on('connect', () => {
@@ -118,11 +124,19 @@ class SocketService {
 
       this.socket.on('userOffline', (userId: string) => {
         this.userOfflineCallbacks.forEach(callback => callback(userId));
-      });
-
-      // Typing events
+      });      // Typing events
       this.socket.on('userTyping', (data: { userId: string, isTyping: boolean }) => {
         this.typingCallbacks.forEach(callback => callback(data));
+      });
+
+      // Task notification events  
+      this.socket.on('taskNotification', (notification: TaskNotification) => {
+        console.log('🔔 Received task notification:', notification);
+        console.log('🔔 Current notificationCallbacks length:', this.notificationCallbacks.length);
+        this.notificationCallbacks.forEach((callback, index) => {
+          console.log(`🔔 Calling notification callback ${index}`);
+          callback(notification);
+        });
       });
 
       this.socket.on('ping', () => {
@@ -231,9 +245,21 @@ class SocketService {
   private removeUserOfflineCallback(callback: UserOfflineCallback) {
     this.userOfflineCallbacks = this.userOfflineCallbacks.filter(cb => cb !== callback);
   }
-
   private removeTypingCallback(callback: TypingCallback) {
     this.typingCallbacks = this.typingCallbacks.filter(cb => cb !== callback);
+  }
+
+  onNotification(callback: NotificationCallback) {
+    console.log('🔔 Adding notification callback. Current count:', this.notificationCallbacks.length);
+    this.notificationCallbacks.push(callback);
+    console.log('🔔 New notification callback count:', this.notificationCallbacks.length);
+    return () => this.removeNotificationCallback(callback);
+  }
+
+  private removeNotificationCallback(callback: NotificationCallback) {
+    console.log('🔔 Removing notification callback. Current count:', this.notificationCallbacks.length);
+    this.notificationCallbacks = this.notificationCallbacks.filter(cb => cb !== callback);
+    console.log('🔔 New notification callback count:', this.notificationCallbacks.length);
   }
 }
 

@@ -11,6 +11,7 @@ const authRoute = require('./routes/auth');
 const userRoute = require('./routes/user');
 const chatRoute = require('./routes/chat');
 const taskRoute = require('./routes/task');
+const timekeepingRoute = require('./routes/timekeeping');
 const User = require('./models/User');
 const Message = require('./models/Message');
 
@@ -74,13 +75,44 @@ process.on('SIGINT', async () => {
   }
 });
 
-// Initialize Socket.IO and make it globally available
+// Initialize Socket.IO with deployment-friendly configuration
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://192.168.100.81:3000"],
+    origin: function (origin, callback) {
+      const allowedOrigins = getAllowedOrigins();
+      
+      if (!origin) return callback(null, true);
+      
+      // Allow development mode
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      
+      // Check if origin matches any allowed pattern
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (typeof allowedOrigin === 'string') {
+          return allowedOrigin === origin;
+        } else if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.log('Socket.IO CORS blocked for origin:', origin);
+        console.log('Allowed origins:', allowedOrigins);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 global.io = io;
 
@@ -142,9 +174,12 @@ io.on('connection', async (socket) => {
   } catch (error) {
     console.error('Error updating user status:', error);
   }
-
   // Handle joining user's room
-  socket.join(socket.userId);  // Handle messages
+  socket.join(socket.userId);
+  console.log(`🏠 User ${socket.userId} joined room: ${socket.userId}`);
+  console.log(`🏠 Current rooms for this socket:`, Array.from(socket.rooms));
+  console.log(`🏠 Total rooms in server:`, Object.keys(io.sockets.adapter.rooms));
+  console.log(`🏠 Users in room ${socket.userId}:`, io.sockets.adapter.rooms.get(socket.userId)?.size || 0);// Handle messages
   socket.on('sendMessage', async (data) => {
     try {
       const { receiverId, content, messageType = 'text' } = data;
@@ -236,13 +271,71 @@ io.on('connection', async (socket) => {
   });
 });
 
-// CORS Configuration
+// CORS Configuration for deployment
+const getAllowedOrigins = () => {
+  const origins = [
+    'http://localhost:3000', // Local development
+    'http://localhost:3001', // Local development alternative
+  ];
+  
+  // Add production URLs if available
+  if (process.env.FRONTEND_URL) {
+    origins.push(process.env.FRONTEND_URL);
+  }
+  
+  // Add common deployment platforms
+  if (process.env.NODE_ENV === 'production') {
+    // Vercel deployment patterns
+    origins.push(/^https:\/\/.*\.vercel\.app$/);
+    origins.push(/^https:\/\/.*\.vercel\.com$/);
+    
+    // Custom domain if you have one
+    if (process.env.CUSTOM_FRONTEND_DOMAIN) {
+      origins.push(process.env.CUSTOM_FRONTEND_DOMAIN);
+    }
+    
+    // Add your specific Vercel URL here
+    // origins.push('https://your-app-name.vercel.app');
+  }
+  
+  return origins;
+};
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    const allowedOrigins = getAllowedOrigins();
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow development mode
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // Check if origin matches any allowed pattern
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin === origin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      console.log('Allowed origins:', allowedOrigins);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Authorization']
 };
 
 // Middleware setup
@@ -252,11 +345,32 @@ app.use(express.json({ limit: '50mb' })); // Increase payload limit for avatar u
 app.use(express.urlencoded({ limit: '50mb', extended: true })); // Also handle URL encoded data
 app.use(morgan('dev'));
 
+// Health check endpoints for deployment
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/v1/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
 // API Routes with versioning
 app.use('/v1/auth', authRoute);
 app.use('/v1/user', userRoute);
 app.use('/v1/chat', chatRoute);
 app.use('/v1/tasks', taskRoute);
+app.use('/v1/timekeeping', timekeepingRoute);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

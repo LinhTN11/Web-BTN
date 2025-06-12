@@ -152,8 +152,7 @@ const Dashboard: React.FC = () => {
                     description={item.description}
                   />
                 </List.Item>
-              )}
-            />
+              )}            />
           </Card>
         </Col>
       </Row>
